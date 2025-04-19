@@ -11,7 +11,7 @@ describe.only("GET /lobby/:id", { only: true }, () => {
   it("should serve the lobby page", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
     const username = "player";
-    const lobby = new Lobby(size);
+    const lobby = new Lobby("0", size);
     lobby.addPlayer({ username });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
@@ -28,7 +28,7 @@ describe.only("GET /lobby/:id", { only: true }, () => {
   it("should not allow unauthorized access", { only: true }, (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
     const username = "player";
-    const lobby = new Lobby(size);
+    const lobby = new Lobby("0", size);
     lobby.addPlayer({ username });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
@@ -46,7 +46,7 @@ describe.only("GET /lobby/:id", { only: true }, () => {
   it("should not allow if player is not in lobby", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
     const username = "player";
-    const lobby = new Lobby(size);
+    const lobby = new Lobby("0", size);
     lobby.addPlayer({ username });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
@@ -67,7 +67,7 @@ describe.only("GET /lobby/:id", { only: true }, () => {
 describe("POST /lobby/:id/players", () => {
   it("should add the player in the lobby", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby(size);
+    const lobby = new Lobby("0", size);
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
     const shuffle = x => x;
@@ -89,7 +89,7 @@ describe("POST /lobby/:id/players", () => {
 
   it("should not add player if the lobby is full", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby(size);
+    const lobby = new Lobby("0", size);
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter();
     const shuffle = x => x;
@@ -126,7 +126,7 @@ describe("POST /lobby/:id/players", () => {
 describe("GET /lobby/:id/status", () => {
   it("should provide fields to determine whether or not to start the game.", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby(size);
+    const lobby = new Lobby("0", size);
     const lobbyManager = new LobbyManager({ 0: lobby });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter();
@@ -138,6 +138,7 @@ describe("GET /lobby/:id/status", () => {
     lobby.addPlayer(player);
 
     const expectedStatus = {
+      id: "0",
       players: [player],
       isFull: false,
       hasExpired: false,
@@ -157,7 +158,7 @@ describe("GET /lobby/:id/status", () => {
 
   it("should not allow if the player is not a member of the lobby", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby(size);
+    const lobby = new Lobby("0", size);
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter();
     const lobbyManager = new LobbyManager({ 0: lobby });

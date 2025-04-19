@@ -69,10 +69,10 @@ const getLobby = (req) => {
 const startGame = (req, res) => {
   const lobby = getLobby(req);
   const { shuffle } = req.app.context;
-  const { players } = lobby.status();
+  const { id, players } = lobby.status();
   const corporations = createCorporations();
 
-  const game = new Game("0", createPlayers(players), shuffle, corporations);
+  const game = new Game(id, createPlayers(players), shuffle, corporations);
 
   req.app.context.game = game;
   game.start();

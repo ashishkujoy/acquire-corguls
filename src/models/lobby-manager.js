@@ -9,8 +9,8 @@ class LobbyManager {
   }
 
   createLobby(size) {
-    const lobby = new Lobby(size);
     const id = this.#idGenerator.generate();
+    const lobby = new Lobby(id, size);
     this.#lobbies[id] = lobby;
 
     return id;

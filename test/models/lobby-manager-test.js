@@ -15,7 +15,7 @@ describe("Lobby Manager", () => {
   });
 
   it("find existing lobby by id", () => {
-    const lobby = new Lobby({ lowerLimit: 2, upperLimit: 6 });
+    const lobby = new Lobby("0", { lowerLimit: 2, upperLimit: 6 });
     const lobbyManager = new LobbyManager({ "abcd": lobby }, {});
 
     const actualLobby = lobbyManager.findById("abcd");
@@ -24,7 +24,7 @@ describe("Lobby Manager", () => {
   });
 
   it("find non existing lobby by id", () => {
-    const lobby = new Lobby({ lowerLimit: 2, upperLimit: 6 });
+    const lobby = new Lobby("0", { lowerLimit: 2, upperLimit: 6 });
     const lobbyManager = new LobbyManager({ "abcd": lobby }, {});
 
     const actualLobby = lobbyManager.findById("abce");
