@@ -266,6 +266,7 @@ describe("GameRouter", () => {
       };
 
       const gameStatus = {
+        id: "0",
         setupTiles: [["player", { position: { x: 0, y: 6 }, isPlaced: true }]],
         state: "place-tile",
         stateInfo: {},
@@ -329,6 +330,7 @@ describe("GameRouter", () => {
       const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const gameStatus = {
+        id: "0",
         state: "buy-stocks",
         stateInfo: {},
         setupTiles: [["player", { position: { x: 0, y: 6 }, isPlaced: true }]],
@@ -629,6 +631,7 @@ describe("GameRouter", () => {
       };
 
       const gameStatus = {
+        id: "0",
         setupTiles: [
           [
             "player1",

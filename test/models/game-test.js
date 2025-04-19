@@ -19,7 +19,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       assert.deepStrictEqual(player1.portfolio(), {
@@ -56,7 +56,7 @@ describe("Game", () => {
       const player2 = new Player("Bittu");
       const corporations = createCorporations();
 
-      const game = new Game([player1, player2], reverse, corporations);
+      const game = new Game("0", [player1, player2], reverse, corporations);
       game.start();
 
       const { players } = game.status(player1.username);
@@ -75,7 +75,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       assert.deepStrictEqual(game.playerDetails("Biswa"), {
@@ -101,7 +101,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       const { players, portfolio } = game.status(player1.username);
@@ -121,7 +121,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 4 });
@@ -138,7 +138,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 3 });
@@ -156,7 +156,7 @@ describe("Game", () => {
 
       Object.values(corporations).forEach(corp => corp.establish());
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
 
       game.start();
 
@@ -172,7 +172,7 @@ describe("Game", () => {
       const player2 = new Player("Bittu");
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, createCorporations());
+      const game = new Game("0", [player1, player2], shuffle, createCorporations());
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 0 });
@@ -190,7 +190,7 @@ describe("Game", () => {
       const player2 = new Player("Bittu");
       const shuffle = x => x;
       const corporations = createCorporations();
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 0 });
@@ -205,7 +205,7 @@ describe("Game", () => {
       const player2 = new Player("Bittu");
       const shuffle = x => x;
       const corporations = createCorporations();
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 0 });
@@ -236,7 +236,7 @@ describe("Game", () => {
       const player2 = new Player("Bittu");
       const shuffle = x => x;
       const corporations = createCorporations();
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 0 });
@@ -322,7 +322,7 @@ describe("Game", () => {
     const player2 = new Player("Bittu");
     const shuffle = x => x;
     const corporations = createCorporations();
-    const game = new Game([player1, player2], shuffle, corporations);
+    const game = new Game("0", [player1, player2], shuffle, corporations);
     game.start();
 
     game.placeTile("Biswa", { x: 0, y: 0 });
@@ -352,7 +352,7 @@ describe("Game", () => {
     const player2 = new Player("Bittu");
     const shuffle = x => x;
     const corporations = createCorporations();
-    const game = new Game([player1, player2], shuffle, corporations);
+    const game = new Game("0", [player1, player2], shuffle, corporations);
     game.start();
 
     game.placeTile("Biswa", { x: 0, y: 0 });
@@ -392,7 +392,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1], shuffle, corporations);
+      const game = new Game("0", [player1], shuffle, corporations);
       game.start();
 
       const expectedPlayerPortfolio = {
@@ -422,7 +422,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       assert.strictEqual(player1.isTakingTurn, true);
@@ -444,7 +444,7 @@ describe("Game", () => {
 
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       assert.strictEqual(player1.isTakingTurn, true);
@@ -463,7 +463,7 @@ describe("Game", () => {
       const player2 = new Player("Honu", 0, { phoenix: 0 });
       const corporations = createCorporations();
       const shuffle = x => x;
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       const transactionDetails = [
         {
           name: "phoenix",
@@ -488,7 +488,7 @@ describe("Game", () => {
       const player2 = new Player("Honu", 0, { phoenix: 0 });
       const corporations = createCorporations();
       const shuffle = x => x;
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       const transactionDetails = [{ name: "phoenix" }];
 
       game.start();
@@ -511,7 +511,7 @@ describe("Game", () => {
       const corporations = createCorporations();
       const shuffle = x => x;
 
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 4 });
@@ -531,7 +531,7 @@ describe("Game", () => {
       const p4 = new Player("Utsab", 0, { hydra: 10 });
       const p2 = new Player("Bittu", 0, { hydra: 11 });
       const corporations = createCorporations();
-      const game = new Game([p1, p2, p3, p4], shuffle, corporations);
+      const game = new Game("0", [p1, p2, p3, p4], shuffle, corporations);
 
       game.start();
 
@@ -550,7 +550,7 @@ describe("Game", () => {
       const p4 = new Player("Utsab", 0, { hydra: 8 });
       const p2 = new Player("Bittu", 0, { hydra: 11 });
       const corporations = createCorporations();
-      const game = new Game([p1, p2, p3, p4], shuffle, corporations);
+      const game = new Game("0", [p1, p2, p3, p4], shuffle, corporations);
 
       game.start();
 
@@ -568,7 +568,7 @@ describe("Game", () => {
       const p2 = new Player("Bittu", 0, { hydra: 11 });
       const p3 = new Player("Qasim", 0, { hydra: 11 });
       const corporations = createCorporations();
-      const game = new Game([p1, p2, p3], shuffle, corporations);
+      const game = new Game("0", [p1, p2, p3], shuffle, corporations);
 
       game.start();
 
@@ -587,7 +587,7 @@ describe("Game", () => {
       const player2 = new Player("Bittu");
       const shuffle = x => x;
       const corporations = createCorporations();
-      const game = new Game([player1, player2], shuffle, corporations);
+      const game = new Game("0", [player1, player2], shuffle, corporations);
       game.start();
 
       game.placeTile("Biswa", { x: 0, y: 0 });
@@ -618,7 +618,7 @@ describe("Game", () => {
       const p4 = new Player("Utsab", 0, { hydra: 11 });
       const p2 = new Player("Bittu", 0, { hydra: 11 });
       const corporations = createCorporations();
-      const game = new Game([p1, p2, p3, p4], shuffle, corporations);
+      const game = new Game("0", [p1, p2, p3, p4], shuffle, corporations);
 
       corporations.hydra.establish();
       corporations.hydra.increaseSize(10);
@@ -636,7 +636,7 @@ describe("Game", () => {
       const p4 = new Player("Utsab", 0, { hydra: 0 });
       const p2 = new Player("Bittu", 0, { hydra: 11 });
       const corporations = createCorporations();
-      const game = new Game([p1, p2, p3, p4], shuffle, corporations);
+      const game = new Game("0", [p1, p2, p3, p4], shuffle, corporations);
 
       corporations.hydra.establish();
       corporations.hydra.increaseSize(10);
@@ -654,7 +654,7 @@ describe("Game", () => {
       const p4 = new Player("Utsab", 0, { hydra: 8 });
       const p2 = new Player("Bittu", 0, { hydra: 11 });
       const corporations = createCorporations();
-      const game = new Game([p1, p2, p3, p4], shuffle, corporations);
+      const game = new Game("0", [p1, p2, p3, p4], shuffle, corporations);
 
       corporations.hydra.establish();
       corporations.hydra.increaseSize(10);
@@ -672,7 +672,7 @@ describe("Game", () => {
       const p4 = new Player("Utsab", 0, { hydra: 10 });
       const p2 = new Player("Bittu", 0, { hydra: 11 });
       const corporations = createCorporations();
-      const game = new Game([p1, p2, p3, p4], shuffle, corporations);
+      const game = new Game("0", [p1, p2, p3, p4], shuffle, corporations);
 
       corporations.hydra.establish();
       corporations.hydra.increaseSize(10);

@@ -18,6 +18,7 @@ const GAME_STATES = {
 };
 
 class Game {
+  #id;
   #tiles;
   #state;
   #stateInfo; // attach with state
@@ -34,7 +35,8 @@ class Game {
   #merger;
   #turnManager;
 
-  constructor(players, shuffle, corporations) {
+  constructor(id, players, shuffle, corporations) {
+    this.#id = id;
     this.#tiles = [];
     this.#placedTiles = [];
     this.#incorporatedTiles = [];
@@ -689,6 +691,7 @@ class Game {
 
   status(username) {
     return {
+      id: this.#id,
       state: this.#state,
       stateInfo: this.#stateInfo,
       setupTiles: this.#setupTiles.map(([player, tile]) => [
@@ -707,9 +710,9 @@ class Game {
     return this.#result;
   }
 
-  static fromJSON({ tiles, players, corporations, setupTiles, placedTiles }) {
+  static fromJSON({ id, tiles, players, corporations, setupTiles, placedTiles }) {
     const game = new Game();
-
+    game.#id = id;
     game.#state = GAME_STATES.placeTile;
     game.#tiles = tiles;
     game.#corporations = corporations;

@@ -72,7 +72,7 @@ const startGame = (req, res) => {
   const { players } = lobby.status();
   const corporations = createCorporations();
 
-  const game = new Game(createPlayers(players), shuffle, corporations);
+  const game = new Game("0", createPlayers(players), shuffle, corporations);
 
   req.app.context.game = game;
   game.start();
