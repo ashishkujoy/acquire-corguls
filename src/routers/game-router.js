@@ -51,7 +51,7 @@ const establishCorporation = (req, res) => {
 };
 
 const verifyStart = (req, res, next) => {
-  const { lobby } = req.app.context;
+  const lobby = getLobby(req);
   const { isPossibleToStartGame } = lobby.status();
 
   if (!isPossibleToStartGame) {
@@ -62,8 +62,13 @@ const verifyStart = (req, res, next) => {
   next();
 };
 
+const getLobby = (req) => {
+  return req.app.context.lobbyManager.findById(0);
+};
+
 const startGame = (req, res) => {
-  const { lobby, shuffle } = req.app.context;
+  const lobby = getLobby(req);
+  const { shuffle } = req.app.context;
   const { players } = lobby.status();
   const corporations = createCorporations();
 
@@ -77,7 +82,7 @@ const startGame = (req, res) => {
 
 const verifyHost = (req, res, next) => {
   const { username } = req.cookies;
-  const { lobby } = req.app.context;
+  const lobby = getLobby(req);
   const { self, host } = lobby.status(username);
 
   if (self.username !== host.username) {

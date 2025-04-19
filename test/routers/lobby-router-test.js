@@ -5,8 +5,9 @@ const { createApp } = require("../../src/app");
 const { createLobbyRouter } = require("../../src/routers/lobby-router");
 const { createGameRouter } = require("../../src/routers/game-router");
 const Lobby = require("../../src/models/lobby");
+const LobbyManager = require("../../src/models/lobby-manager");
 
-describe("GET /lobby", () => {
+describe.only("GET /lobby/:id", { only: true }, () => {
   it("should serve the lobby page", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
     const username = "player";
@@ -14,25 +15,28 @@ describe("GET /lobby", () => {
     lobby.addPlayer({ username });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
-    const app = createApp(lobbyRouter, gameRouter, { lobby });
+    const lobbyManager = new LobbyManager({ 0: lobby });
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
     request(app)
-      .get("/lobby")
+      .get("/lobby/0")
       .set("cookie", `username=${username}`)
       .expect(200)
       .expect("content-type", new RegExp("text/html"))
       .end(done);
   });
 
-  it("should not allow unauthorized access", (_, done) => {
+  it("should not allow unauthorized access", { only: true }, (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
     const username = "player";
     const lobby = new Lobby(size);
     lobby.addPlayer({ username });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
-    const app = createApp(lobbyRouter, gameRouter, { lobby });
+    const lobbyManager = new LobbyManager({ 0: lobby });
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
+
     request(app)
-      .get("/lobby")
+      .get("/lobby/0")
       .set("cookie", "username=abcd")
       .expect(302)
       .expect("location", "/")
@@ -46,26 +50,36 @@ describe("GET /lobby", () => {
     lobby.addPlayer({ username });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
-    const app = createApp(lobbyRouter, gameRouter, { lobby });
-    request(app).get("/lobby").expect(302).expect("location", "/").end(done);
+    const lobbyManager = new LobbyManager({ 0: lobby });
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
+    request(app).get("/lobby/0").expect(302).expect("location", "/").end(done);
+  });
+
+  it("should error on non existing lobby", (_, done) => {
+    const lobbyRouter = createLobbyRouter();
+    const gameRouter = createGameRouter({});
+    const lobbyManager = new LobbyManager({});
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
+    request(app).get("/lobby/0").expect(404).end(done);
   });
 });
 
-describe("POST /lobby/players", () => {
+describe("POST /lobby/:id/players", () => {
   it("should add the player in the lobby", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
     const lobby = new Lobby(size);
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter({});
     const shuffle = x => x;
-    const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+    const lobbyManager = new LobbyManager({ 0: lobby });
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
     const username = "player";
     request(app)
-      .post("/lobby/players")
+      .post("/lobby/0/players")
       .send({ username })
       .expect(302)
-      .expect("location", "/lobby")
+      .expect("location", "/lobby/0")
       .expect("set-cookie", new RegExp(`username=${username}`))
       .end(err => {
         assert.deepStrictEqual(lobby.status().players, [{ username }]);
@@ -79,7 +93,8 @@ describe("POST /lobby/players", () => {
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter();
     const shuffle = x => x;
-    const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+    const lobbyManager = new LobbyManager({ 0: lobby });
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
     const players = [
       { username: "player1" },
       { username: "player2" },
@@ -92,11 +107,11 @@ describe("POST /lobby/players", () => {
     lobby.addPlayer(players[1]);
 
     request(app)
-      .post("/lobby/players")
+      .post("/lobby/0/players")
       .send(players[2])
       .end(() => {
         request(app)
-          .post("/lobby/players")
+          .post("/lobby/0/players")
           .send(player4)
           .expect(401)
           .expect({ error: "Lobby is full !" })
@@ -108,15 +123,16 @@ describe("POST /lobby/players", () => {
   });
 });
 
-describe("GET /lobby/status", () => {
+describe("GET /lobby/:id/status", () => {
   it("should provide fields to determine whether or not to start the game.", (_, done) => {
     const size = { lowerLimit: 3, upperLimit: 3 };
     const lobby = new Lobby(size);
+    const lobbyManager = new LobbyManager({ 0: lobby });
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter();
     const shuffle = x => x;
 
-    const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
     const player = { username: "player" };
 
     lobby.addPlayer(player);
@@ -131,7 +147,7 @@ describe("GET /lobby/status", () => {
     };
 
     request(app)
-      .get("/lobby/status")
+      .get("/lobby/0/status")
       .set("cookie", "username=player")
       .expect(200)
       .expect("content-type", new RegExp("application/json"))
@@ -144,12 +160,13 @@ describe("GET /lobby/status", () => {
     const lobby = new Lobby(size);
     const lobbyRouter = createLobbyRouter();
     const gameRouter = createGameRouter();
+    const lobbyManager = new LobbyManager({ 0: lobby });
     const shuffle = x => x;
 
-    const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
     request(app)
-      .get("/lobby/status")
+      .get("/lobby/0/status")
       .set("cookie", "username=player")
       .expect(302)
       .expect("location", "/")

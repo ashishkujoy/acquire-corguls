@@ -3,8 +3,8 @@ const getMessageElement = () => document.querySelector("#message");
 const getAnimationSection = () => document.querySelector("#animation");
 const getStartBtn = () => document.querySelector("#start-btn");
 
-const getLobbyStatus = () => {
-  return fetch("/lobby/status").then(res => res.json());
+const getLobbyStatus = (id = 0) => {
+  return fetch(`/lobby/${id}/status`).then(res => res.json());
 };
 
 const renderPlayer = (username, playerElement) => {

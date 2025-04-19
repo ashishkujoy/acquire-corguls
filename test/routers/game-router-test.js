@@ -10,13 +10,14 @@ const gameEndData = require("../test-data/all-stable-coporations.json");
 const mergerRound = require("../test-data/merger-round.json");
 const multipleMergeTwoAcquirer = require("../test-data/merging-three-two-equal-acquirer.json");
 const multipleMergeThreeAllEqual = require("../test-data/merging-three-all-equal.json");
+const LobbyManager = require("../../src/models/lobby-manager");
 
 const joinPlayer = (app, username) => {
   return request(app)
-    .post("/lobby/players")
+    .post("/lobby/0/players")
     .send({ username })
     .expect(302)
-    .expect("location", "/lobby");
+    .expect("location", "/lobby/0");
 };
 
 const startGame = (app, admin) => {
@@ -207,9 +208,10 @@ describe("GameRouter", () => {
       const size = { lowerLimit: 1, upperLimit: 1 };
       const lobby = new Lobby(size);
       const username = "player";
+      const lobbyManager = new LobbyManager({ 0: lobby });
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
-      const app = createApp(lobbyRouter, gameRouter, { lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
       lobby.addPlayer({ username });
 
       request(app)
@@ -225,7 +227,8 @@ describe("GameRouter", () => {
       const lobby = new Lobby(size);
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
-      const app = createApp(lobbyRouter, gameRouter, { lobby });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
       request(app).get("/game").expect(302).expect("location", "/").end(done);
     });
   });
@@ -234,12 +237,13 @@ describe("GameRouter", () => {
     it("should get current game status", (_, done) => {
       const size = { lowerLimit: 1, upperLimit: 1 };
       const lobby = new Lobby(size);
+      const lobbyManager = new LobbyManager({ 0: lobby });
       const username = "player";
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
 
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
       const portfolio = {
         tiles: [
           { position: { x: 0, y: 0 }, isPlaced: false },
@@ -292,7 +296,7 @@ describe("GameRouter", () => {
       };
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .set("cookie", "username=player")
         .send({ username })
         .end(() => {
@@ -320,8 +324,9 @@ describe("GameRouter", () => {
       const username = "player";
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
+      const lobbyManager = new LobbyManager({ 0: lobby });
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const gameStatus = {
         state: "buy-stocks",
@@ -389,7 +394,7 @@ describe("GameRouter", () => {
       };
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username })
         .expect(200)
         .end(() => {
@@ -426,8 +431,9 @@ describe("GameRouter", () => {
       const username2 = "player2";
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
+      const lobbyManager = new LobbyManager({ 0: lobby });
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const expectedPlayers = [
         { username: username1, isTakingTurn: false, you: true },
@@ -435,12 +441,12 @@ describe("GameRouter", () => {
       ];
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username: username1 })
         .expect(200)
         .end(() => {
           request(app)
-            .post("/lobby/players")
+            .post("/lobby/0/players")
             .send({ username: username2 })
             .expect(200)
             .end(() => {
@@ -478,10 +484,11 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username })
         .expect(200)
         .end(() => {
@@ -504,10 +511,11 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username })
         .expect(200)
         .end(() => {
@@ -526,19 +534,20 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const username1 = "player1";
       const username2 = "player2";
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username: username1 })
         .expect(302)
         .expect("location", "/lobby")
         .end(() => {
           request(app)
-            .post("/lobby/players")
+            .post("/lobby/0/players")
             .send({ username: username2 })
             .expect(302)
             .expect("location", "/lobby")
@@ -558,22 +567,23 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const username1 = "player1";
       const username2 = "player2";
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username: username1 })
         .expect(302)
-        .expect("location", "/lobby")
+        .expect("location", "/lobby/0")
         .end(() => {
           request(app)
-            .post("/lobby/players")
+            .post("/lobby/0/players")
             .send({ username: username2 })
             .expect(302)
-            .expect("location", "/lobby")
+            .expect("location", "/lobby/0")
             .end(() => {
               request(app)
                 .post("/game/start")
@@ -594,7 +604,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const portfolio = {
         tiles: [
@@ -714,12 +725,12 @@ describe("GameRouter", () => {
       };
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username: username1 })
         .expect(302)
         .end(() => {
           request(app)
-            .post("/lobby/players")
+            .post("/lobby/0/players")
             .send({ username: username2 })
             .expect(302)
             .end(() => {
@@ -765,7 +776,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const portfolio = {
         tiles: [
@@ -808,7 +820,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       const expectedStatus = {
         "state": "place-tile",
@@ -1067,7 +1080,7 @@ describe("GameRouter", () => {
       };
 
       request(app)
-        .post("/lobby/players")
+        .post("/lobby/0/players")
         .send({ username: "biswa" })
         .expect(200)
         .end(() => {
@@ -1103,7 +1116,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, player);
       await startGame(app, player);
@@ -1134,7 +1148,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, player);
       await startGame(app, player);
@@ -1169,7 +1184,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, player);
       await startGame(app, player);
@@ -1208,7 +1224,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, playerName);
       await startGame(app, playerName);
@@ -1237,7 +1254,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, playerName);
       await startGame(app, playerName);
@@ -1267,7 +1285,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, playerName);
       await startGame(app, playerName);
@@ -1300,7 +1319,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, username1);
       await joinPlayer(app, username2);
@@ -1321,7 +1341,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, player1);
       await joinPlayer(app, player2);
@@ -1349,7 +1370,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobby, shuffle });
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
 
       await joinPlayer(app, player1);
       await joinPlayer(app, player2);

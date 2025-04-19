@@ -1,8 +1,8 @@
 const getJoinForm = () => document.querySelector("#join-form");
 const getMessageElement = () => document.querySelector("#message");
 
-const requestJoinGame = userData => {
-  return fetch("/lobby/players", {
+const requestJoinGame = (userData, id = 0) => {
+  return fetch(`/lobby/${id}/players`, {
     method: "POST",
     body: JSON.stringify(userData),
     headers: { "content-type": "application/json" },

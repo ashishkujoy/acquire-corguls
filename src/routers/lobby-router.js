@@ -24,7 +24,7 @@ const joinPlayer = (req, res) => {
 
   lobby.addPlayer({ username });
 
-  res.cookie("username", username).redirect("/lobby");
+  res.cookie("username", username).redirect("/lobby/0");
 };
 
 const sendLobbyStatus = (req, res) => {
@@ -37,9 +37,20 @@ const sendLobbyStatus = (req, res) => {
 const createLobbyRouter = () => {
   const router = new express.Router();
 
-  router.get("/", authorize, authorizeLobbyMember, serveLobbyPage);
-  router.post("/players", doNotJoinIfLobbyIsFull, joinPlayer);
-  router.get("/status", authorize, authorizeLobbyMember, sendLobbyStatus);
+  router.use(["/:id", "/:id/*"], (req, res, next) => {
+    const { id } = req.params;
+    const lobby = req.app.context.lobbyManager.findById(id);
+    if (!lobby) {
+      res.status(404);
+      return res.json({ message: `Lobby Not Found: ${id}` });
+    }
+    req.app.context.lobby = lobby;
+    return next();
+  });
+
+  router.get("/:id", authorize, authorizeLobbyMember, serveLobbyPage);
+  router.post("/:id/players", doNotJoinIfLobbyIsFull, joinPlayer);
+  router.get("/:id/status", authorize, authorizeLobbyMember, sendLobbyStatus);
 
   return router;
 };
