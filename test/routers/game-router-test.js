@@ -11,6 +11,7 @@ const mergerRound = require("../test-data/merger-round.json");
 const multipleMergeTwoAcquirer = require("../test-data/merging-three-two-equal-acquirer.json");
 const multipleMergeThreeAllEqual = require("../test-data/merging-three-all-equal.json");
 const LobbyManager = require("../../src/models/lobby-manager");
+const GameManager = require("../../src/models/game-manager");
 
 const joinPlayer = (app, username) => {
   return request(app)
@@ -22,14 +23,14 @@ const joinPlayer = (app, username) => {
 
 const startGame = (app, admin) => {
   return request(app)
-    .post("/game/start")
+    .post("/game/0/start")
     .set("cookie", `username=${admin}`)
     .expect(200);
 };
 
 const placeTile = (app, username, tile) => {
   return request(app)
-    .post("/game/tile")
+    .post("/game/0/tile")
     .set("cookie", `username=${username}`)
     .send(tile)
     .expect(200);
@@ -37,7 +38,7 @@ const placeTile = (app, username, tile) => {
 
 const loadGame = (app, username, gameData) => {
   return request(app)
-    .post("/game/test")
+    .post("/game/0/test")
     .send(gameData)
     .set("cookie", `username=${username}`)
     .expect(201);
@@ -45,7 +46,7 @@ const loadGame = (app, username, gameData) => {
 
 const establishCorp = (app, username, corpName) => {
   return request(app)
-    .post("/game/establish")
+    .post("/game/0/establish")
     .send({ name: corpName })
     .set("cookie", `username=${username}`)
     .expect(200);
@@ -53,7 +54,7 @@ const establishCorp = (app, username, corpName) => {
 
 const buyStocks = (app, username, stocks) => {
   return request(app)
-    .post("/game/buy-stocks")
+    .post("/game/0/buy-stocks")
     .set("cookie", `username=${username}`)
     .send(stocks)
     .expect(200);
@@ -61,7 +62,7 @@ const buyStocks = (app, username, stocks) => {
 
 const getGameStatus = async (app, username) => {
   const result = await request(app)
-    .get("/game/status")
+    .get("/game/0/status")
     .set("cookie", `username=${username}`);
 
   return result.body;
@@ -69,14 +70,14 @@ const getGameStatus = async (app, username) => {
 
 const endMerge = (app, username) => {
   return request(app)
-    .post("/game/end-merge")
+    .post("/game/0/end-merge")
     .set("cookie", `username=${username}`)
     .expect(200);
 };
 
 const resolveConflict = (app, username, body) => {
   return request(app)
-    .post("/game/merger/resolve-conflict")
+    .post("/game/0/merger/resolve-conflict")
     .set("cookie", `username=${username}`)
     .send(body)
     .expect(200);
@@ -84,14 +85,14 @@ const resolveConflict = (app, username, body) => {
 
 const endTurn = (app, username) => {
   return request(app)
-    .post("/game/end-turn")
+    .post("/game/0/end-turn")
     .set("cookie", `username=${username}`)
     .expect(200);
 };
 
 const dealDefunctStocks = (app, username, cart) => {
   return request(app)
-    .post("/game/merger/deal")
+    .post("/game/0/merger/deal")
     .send(cart)
     .set("cookie", `username=${username}`)
     .expect(200);
@@ -99,7 +100,7 @@ const dealDefunctStocks = (app, username, cart) => {
 
 const endMergerTurn = (app, username) => {
   return request(app)
-    .post("/game/merger/end-turn")
+    .post("/game/0/merger/end-turn")
     .set("cookie", `username=${username}`)
     .expect(200);
 };
@@ -113,7 +114,7 @@ const badRequest = (app, username, url) => {
 
 const gameResult = async (app, username) => {
   const result = await request(app)
-    .get("/game/end-result")
+    .get("/game/0/end-result")
     .set("cookie", `username=${username}`)
     .expect(200);
 
@@ -122,7 +123,7 @@ const gameResult = async (app, username) => {
 
 const selectAcquirer = async (app, username, acquirer) => {
   return request(app)
-    .post("/game/merger/resolve-acquirer")
+    .post("/game/0/merger/resolve-acquirer")
     .set("cookie", `username=${username}`)
     .send({ acquirer })
     .expect(200);
@@ -130,7 +131,7 @@ const selectAcquirer = async (app, username, acquirer) => {
 
 const selectDefunct = async (app, username, defunct) => {
   return request(app)
-    .post("/game/merger/confirm-defunct")
+    .post("/game/0/merger/confirm-defunct")
     .set("cookie", `username=${username}`)
     .send({ defunct })
     .expect(200);
@@ -209,13 +210,14 @@ describe("GameRouter", () => {
       const lobby = new Lobby("0", size);
       const username = "player";
       const lobbyManager = new LobbyManager({ 0: lobby });
+      const gameManager = new GameManager({});
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, gameManager });
       lobby.addPlayer({ username });
 
       request(app)
-        .get("/game")
+        .get("/game/0")
         .set("cookie", "username=player")
         .expect(200)
         .expect("content-type", new RegExp("text/html"))
@@ -227,9 +229,10 @@ describe("GameRouter", () => {
       const lobby = new Lobby("0", size);
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
+      const gameManager = new GameManager({});
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
-      request(app).get("/game").expect(302).expect("location", "/").end(done);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, gameManager });
+      request(app).get("/game/0").expect(302).expect("location", "/").end(done);
     });
   });
 
@@ -242,8 +245,8 @@ describe("GameRouter", () => {
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
-
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
       const portfolio = {
         tiles: [
           { position: { x: 0, y: 0 }, isPlaced: false },
@@ -302,17 +305,60 @@ describe("GameRouter", () => {
         .send({ username })
         .end(() => {
           request(app)
-            .post("/game/start")
+            .post("/game/0/start")
             .set("cookie", "username=player")
             .end(() => {
               request(app)
-                .get("/game/status")
+                .get("/game/0/status")
                 .set("cookie", "username=player")
                 .expect(200)
                 .end((err, res) => {
                   assert.deepStrictEqual(res.body, gameStatus);
                   done(err);
                 });
+            });
+        });
+    });
+
+    it("should error on non existing lobby", (_, done) => {
+      const lobbyManager = new LobbyManager({});
+      const lobbyRouter = createLobbyRouter();
+      const gameRouter = createGameRouter();
+      const shuffle = x => x;
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+
+
+      request(app)
+        .get("/game/0/status")
+        .set("cookie", "username=player")
+        .expect(404)
+        .end(done);
+    });
+
+    it("should error on non existing gmae", (_, done) => {
+      const size = { lowerLimit: 1, upperLimit: 1 };
+      const lobby = new Lobby("0", size);
+      const lobbyManager = new LobbyManager({ 0: lobby });
+      const username = "player";
+      const lobbyRouter = createLobbyRouter();
+      const gameRouter = createGameRouter();
+      const shuffle = x => x;
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+
+      request(app)
+        .post("/lobby/0/players")
+        .set("cookie", "username=player")
+        .send({ username })
+        .end(() => {
+          request(app)
+            .get("/game/0/status")
+            .set("cookie", "username=player")
+            .expect(404)
+            .end((err, res) => {
+              assert.deepStrictEqual(res.body, { message: "Game Not found: 0" });
+              done(err);
             });
         });
     });
@@ -327,7 +373,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const lobbyManager = new LobbyManager({ 0: lobby });
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       const gameStatus = {
         id: "0",
@@ -401,17 +448,17 @@ describe("GameRouter", () => {
         .expect(200)
         .end(() => {
           request(app)
-            .post("/game/start")
+            .post("/game/0/start")
             .set("cookie", "username=player")
             .end(() => {
               request(app)
-                .post("/game/tile")
+                .post("/game/0/tile")
                 .set("cookie", "username=player")
                 .send({ x: 0, y: 0 })
                 .expect(200)
                 .end(() => {
                   request(app)
-                    .get("/game/status")
+                    .get("/game/0/status")
                     .set("cookie", "username=player")
                     .expect(200)
                     .expect("content-type", new RegExp("application/json"))
@@ -435,7 +482,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const lobbyManager = new LobbyManager({ 0: lobby });
       const shuffle = x => x;
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       const expectedPlayers = [
         { username: username1, isTakingTurn: false, you: true },
@@ -453,17 +501,17 @@ describe("GameRouter", () => {
             .expect(200)
             .end(() => {
               request(app)
-                .post("/game/start")
+                .post("/game/0/start")
                 .set("cookie", "username=player1")
                 .expect(200)
                 .end(() => {
                   request(app)
-                    .post("/game/end-turn")
+                    .post("/game/0/end-turn")
                     .set("cookie", "username=player1")
                     .expect(200)
                     .end(() => {
                       request(app)
-                        .get("/game/status")
+                        .get("/game/0/status")
                         .set("cookie", "username=player1")
                         .expect(200)
                         .end((err, res) => {
@@ -487,7 +535,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       request(app)
         .post("/lobby/0/players")
@@ -495,7 +544,7 @@ describe("GameRouter", () => {
         .expect(200)
         .end(() => {
           request(app)
-            .post("/game/start")
+            .post("/game/0/start")
             .set("cookie", "username=player")
             .expect(200)
             .end(err => {
@@ -514,7 +563,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       request(app)
         .post("/lobby/0/players")
@@ -522,7 +572,7 @@ describe("GameRouter", () => {
         .expect(200)
         .end(() => {
           request(app)
-            .post("/game/start")
+            .post("/game/0/start")
             .set("cookie", "username=player")
             .expect(302)
             .expect("location", "/lobby")
@@ -537,7 +587,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       const username1 = "player1";
       const username2 = "player2";
@@ -555,7 +606,7 @@ describe("GameRouter", () => {
             .expect("location", "/lobby")
             .end(() => {
               request(app)
-                .post("/game/start")
+                .post("/game/0/start")
                 .set("cookie", "username=player1")
                 .expect(200)
                 .end(done);
@@ -570,7 +621,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       const username1 = "player1";
       const username2 = "player2";
@@ -588,7 +640,7 @@ describe("GameRouter", () => {
             .expect("location", "/lobby/0")
             .end(() => {
               request(app)
-                .post("/game/start")
+                .post("/game/0/start")
                 .set("cookie", "username=player2")
                 .expect(400)
                 .end(done);
@@ -607,7 +659,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       const portfolio = {
         tiles: [
@@ -738,24 +791,24 @@ describe("GameRouter", () => {
             .expect(302)
             .end(() => {
               request(app)
-                .post("/game/start")
+                .post("/game/0/start")
                 .set("cookie", "username=player1")
                 .expect(200)
                 .end(() => {
                   request(app)
-                    .post("/game/tile")
+                    .post("/game/0/tile")
                     .set("cookie", "username=player1")
                     .send({ x: 0, y: 0 })
                     .expect(200)
                     .end(() => {
                       request(app)
-                        .post("/game/establish")
+                        .post("/game/0/establish")
                         .send({ name: "phoenix" })
                         .set("cookie", "username=player1")
                         .expect(200)
                         .end(() => {
                           request(app)
-                            .get("/game/status")
+                            .get("/game/0/status")
                             .set("cookie", "username=player1")
                             .expect(200)
                             .end((err, res) => {
@@ -780,7 +833,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       const portfolio = {
         tiles: [
@@ -824,9 +878,11 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       const expectedStatus = {
+        id: "0",
         "state": "place-tile",
         "stateInfo": {},
         "setupTiles": [
@@ -1088,17 +1144,17 @@ describe("GameRouter", () => {
         .expect(200)
         .end(() => {
           request(app)
-            .post("/game/start")
+            .post("/game/0/start")
             .set("cookie", "username=biswa")
             .expect(200)
             .end(() => {
               request(app)
-                .post("/game/test")
+                .post("/game/0/test")
                 .send(gameState)
                 .expect(200)
                 .end(() => {
                   request(app)
-                    .get("/game/status")
+                    .get("/game/0/status")
                     .expect(200)
                     .set("cookie", "username=biswa")
                     .end((err, res) => {
@@ -1120,7 +1176,8 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, player);
       await startGame(app, player);
@@ -1152,7 +1209,9 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, player);
       await startGame(app, player);
@@ -1188,7 +1247,9 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, player);
       await startGame(app, player);
@@ -1228,7 +1289,9 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, playerName);
       await startGame(app, playerName);
@@ -1258,7 +1321,9 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, playerName);
       await startGame(app, playerName);
@@ -1289,7 +1354,9 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, playerName);
       await startGame(app, playerName);
@@ -1323,14 +1390,16 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, username1);
       await joinPlayer(app, username2);
       await startGame(app, username1);
       await placeTile(app, username1, { x: 0, y: 0 });
       await endTurn(app, username1);
-      await badRequest(app, username1, "/game/end-turn");
+      await badRequest(app, username1, "/game/0/end-turn");
     });
   });
 
@@ -1345,7 +1414,9 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, player1);
       await joinPlayer(app, player2);
@@ -1374,7 +1445,9 @@ describe("GameRouter", () => {
       const gameRouter = createGameRouter();
       const shuffle = x => x;
       const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+
+      const gameManager = new GameManager({}, shuffle);
+      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
 
       await joinPlayer(app, player1);
       await joinPlayer(app, player2);

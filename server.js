@@ -4,6 +4,7 @@ const { createApp } = require("./src/app");
 const { createGameRouter } = require("./src/routers/game-router");
 const { createLobbyRouter } = require("./src/routers/lobby-router");
 const LobbyManager = require("./src/models/lobby-manager");
+const GameManager = require("./src/models/game-manager");
 
 const PORT = process.env.PORT || 8080;
 
@@ -15,15 +16,16 @@ const logServerInfo = () => {
 const setUpLobbyManager = () => {
   const size = { lowerLimit: 2, upperLimit: 6 };
   let id = 0;
-  return new LobbyManager("0", { 0: new Lobby(size) }, { generate: () => ++id });
+  return new LobbyManager({ 0: new Lobby("0", size) }, { generate: () => ++id });
 };
 
 const main = () => {
   const lobbyManager = setUpLobbyManager();
   const lobbyRouter = createLobbyRouter();
   const gameRouter = createGameRouter();
+  const gameManager = new GameManager({}, shuffle);
 
-  const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+  const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
   app.listen(PORT, logServerInfo);
 };
 

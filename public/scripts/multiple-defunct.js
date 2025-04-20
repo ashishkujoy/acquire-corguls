@@ -1,7 +1,8 @@
 import { resolveTie } from "/scripts/tie-resolver.js";
 
 const confirmDefunct = defunct => {
-  fetch("/game/merger/confirm-defunct", {
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/merger/confirm-defunct`, {
     method: "POST",
     body: JSON.stringify({ defunct }),
     headers: {

@@ -21,8 +21,8 @@ const renderPlayers = players => {
   });
 };
 
-const redirectToGame = () => {
-  window.location.assign("/game");
+const redirectToGame = (gameId) => {
+  window.location.assign(`/game/${gameId}`);
 };
 
 const isHost = (host, self) => self.username === host.username;
@@ -45,7 +45,8 @@ const updateLobby = () => {
   getLobbyStatus().then(status => {
     renderPlayers(status.players);
     renderStartBtn(status);
-    if (gameHasStarted(status)) redirectToGame();
+    console.log(status);
+    if (gameHasStarted(status)) redirectToGame(status.id);
   });
 };
 
@@ -65,9 +66,10 @@ const animate = () => {
 };
 
 const startGame = () => {
-  return fetch("/game/start", { method: "POST" }).then(res => {
+  const gameId = window.location.pathname.split("/").pop();
+  return fetch(`/game/${gameId}/start`, { method: "POST" }).then(res => {
     if (res.status === 200) {
-      redirectToGame();
+      redirectToGame(gameId);
     }
   });
 };

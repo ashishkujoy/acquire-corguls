@@ -1,7 +1,8 @@
 import { createCard } from "/scripts/game.js";
 
 const confirmAcquirer = acquirer => {
-  fetch("/game/merger/resolve-acquirer", {
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/merger/resolve-acquirer`, {
     method: "POST",
     body: JSON.stringify({ acquirer }),
     headers: {

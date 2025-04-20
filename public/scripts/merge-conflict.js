@@ -1,7 +1,8 @@
 import { createCard } from "/scripts/game.js";
 
 const determineDefunctCorp = (acquirer, defunct) => {
-  fetch("/game/merger/resolve-conflict", {
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/merger/resolve-conflict`, {
     method: "POST",
     body: JSON.stringify({ acquirer, defunct }),
     headers: {

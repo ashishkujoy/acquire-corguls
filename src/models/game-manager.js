@@ -1,4 +1,4 @@
-const { Game } = require("./game");
+const { Game, loadGame } = require("./game");
 const { createCorporations } = require("./corporation");
 const { createPlayers } = require("./player");
 
@@ -21,6 +21,12 @@ class GameManager {
 
   findById(id) {
     return this.#games[id];
+  }
+
+  load(id, gameData) {
+    const game = loadGame(id, gameData);
+    this.#games[id] = game;
+    return game;
   }
 }
 

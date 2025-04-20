@@ -136,14 +136,16 @@ const renderGameResult = ({ players, bonuses }) => {
 };
 
 const getGameResult = () => {
-  fetch("/game/end-result")
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/end-result`)
     .then(res => res.json())
     .then(renderGameResult);
 };
 
 const refillTile = () => {
   const transitionDelay = 1000;
-  fetch("/game/end-turn", { method: "POST" }).then(() => {
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/end-turn`, { method: "POST" }).then(() => {
     const tileElements = getTileElements();
     placeNewTile(tileElements);
     setTimeout(() => removeHighlight(tileElements), transitionDelay);
@@ -205,7 +207,8 @@ class Purchase {
   }
 
   #confirmPurchase() {
-    return fetch("/game/buy-stocks", {
+    const gameId = window.location.pathname.split("/").pop();
+    return fetch(`/game/${gameId}/buy-stocks`, {
       method: "POST",
       body: JSON.stringify(this.#cart),
       headers: {

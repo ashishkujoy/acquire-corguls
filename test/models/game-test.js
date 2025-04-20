@@ -265,7 +265,7 @@ describe("Game", () => {
 
     describe("multiple merge", () => {
       it("should lead the game state to acquirer selection", () => {
-        const game = loadGame(multipleMergeTwoAcquirer);
+        const game = loadGame(0, multipleMergeTwoAcquirer);
         game.placeTile("Bittu", { x: 4, y: 6 });
         const { state } = game.status("Bittu");
 
@@ -273,7 +273,7 @@ describe("Game", () => {
       });
 
       it("should lead the game state to defunct selection, when there are potential defunct corporations following acquirer selection", () => {
-        const game = loadGame(multipleMergeThreeAllEqual);
+        const game = loadGame(0, multipleMergeThreeAllEqual);
         game.placeTile("Bittu", { x: 4, y: 6 });
         const { state: acquirerSelection } = game.status("Bittu");
 
@@ -285,7 +285,7 @@ describe("Game", () => {
       });
 
       it("should merge all equal corporations", () => {
-        const game = loadGame(multipleMergeThreeAllEqual);
+        const game = loadGame(0, multipleMergeThreeAllEqual);
         game.placeTile("Bittu", { x: 4, y: 6 });
         const { state: acquirerSelection } = game.status("Bittu");
 
@@ -308,7 +308,7 @@ describe("Game", () => {
       });
 
       it("should lead game state to defunct selection, when there are more multiple deducts", () => {
-        const game = loadGame(multipleMergeTwoDefunct);
+        const game = loadGame(0, multipleMergeTwoDefunct);
         game.placeTile("Bittu", { x: 4, y: 6 });
         const { state } = game.status("Bittu");
 
@@ -686,7 +686,7 @@ describe("Game", () => {
     });
 
     it("should start multiple merge", () => {
-      const game = loadGame(multipleMerge);
+      const game = loadGame(0, multipleMerge);
       game.placeTile("Bittu", { x: 4, y: 6 });
 
       assert.deepStrictEqual(game.status("Bittu").state, "merge");
@@ -695,7 +695,7 @@ describe("Game", () => {
     });
 
     it("should select acquirer when there is a tie among acquire", () => {
-      const game = loadGame(multipleMergeTwoAcquirer);
+      const game = loadGame(0, multipleMergeTwoAcquirer);
       game.placeTile("Bittu", { x: 4, y: 6 });
 
       assert.strictEqual(game.status("Bittu").state, "acquirer-selection");
@@ -704,7 +704,7 @@ describe("Game", () => {
     });
 
     it("should merge acquirer and defunct after acquirer is selected", () => {
-      const game = loadGame(multipleMergeTwoAcquirer);
+      const game = loadGame(0, multipleMergeTwoAcquirer);
       game.placeTile("Bittu", { x: 4, y: 6 });
 
       assert.strictEqual(game.status("Bittu").state, "acquirer-selection");
@@ -717,7 +717,7 @@ describe("Game", () => {
     });
 
     it("should merge multiple corporations", () => {
-      const game = loadGame(multipleMergeTwoAcquirer);
+      const game = loadGame(0, multipleMergeTwoAcquirer);
       game.placeTile("Bittu", { x: 4, y: 6 });
 
       assert.strictEqual(game.status("Bittu").state, "acquirer-selection");
@@ -735,7 +735,7 @@ describe("Game", () => {
 
   describe("exchangeUnplayableTiles", () => {
     it("should mark a tile as unplayable when it connects two safe corporations", () => {
-      const game = loadGame(JSON.parse(JSON.stringify(unplayableTile)));
+      const game = loadGame(0, JSON.parse(JSON.stringify(unplayableTile)));
 
       game.placeTile("Debu", { x: 7, y: 9 });
 
@@ -752,7 +752,7 @@ describe("Game", () => {
     });
 
     it("should exchange unplayable tiles", () => {
-      const game = loadGame(JSON.parse(JSON.stringify(unplayableTile)));
+      const game = loadGame(0, JSON.parse(JSON.stringify(unplayableTile)));
 
       game.placeTile("Debu", { x: 7, y: 9 });
       game.changeTurn();

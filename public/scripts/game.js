@@ -113,8 +113,9 @@ const getBalanceContainer = () => document.querySelector("#balance-container");
 
 const getCorporations = () => document.querySelector("#corporations");
 
-const establishCorporation = data => {
-  fetch("/game/establish", {
+const establishCorporation = (data) => {
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/establish`, {
     method: "POST",
     body: JSON.stringify(data),
     headers: {
@@ -150,7 +151,8 @@ const disablePlayerTiles = () => {
 };
 
 const setUpTiles = ({ position }) => {
-  fetch("/game/tile", {
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/tile`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -230,7 +232,7 @@ const displayAndSetupAccountTiles = gameStatus => {
     addVisualAttribute(tileElement, tile);
     attachListener(tileElement, tile);
     if (tile.exchange === "yes") {
-      tileElement.onclick = () => {};
+      tileElement.onclick = () => { };
       tileElement.classList.add("unplayable-tile");
     }
   });
@@ -322,7 +324,8 @@ const notifyGameEnd = () => {
 };
 
 const renderGame = () => {
-  fetch("/game/status")
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/status`)
     .then(res => res.json())
     .then(gameStatus => {
       if (previousState === gameStatus.state && gameStatus.state !== "merge")
@@ -595,7 +598,8 @@ const createComponents = gameStatus => {
 
 const setupGame = () => {
   setupInfoCard();
-  const gameGateway = new GameGateway("/game");
+  const gameId = window.location.pathname.split("/").pop();
+  const gameGateway = new GameGateway(`/game/${gameId}`);
 
   return gameGateway.getStatus().then(gameStatus => {
     displayPlayerProfile(gameStatus);

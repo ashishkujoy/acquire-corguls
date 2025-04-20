@@ -729,10 +729,11 @@ class Game {
   }
 }
 
-const loadGame = gameData => {
+const loadGame = (id, gameData) => {
   const data = JSON.parse(JSON.stringify(gameData));
   return Game.fromJSON({
     ...data,
+    id,
     players: gameData.players.map(player => Player.fromJSON(player)),
     corporations: Object.fromEntries(
       Object.entries(gameData.corporations).map(([name, data]) => [

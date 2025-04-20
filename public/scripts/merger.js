@@ -1,7 +1,8 @@
 import { createCard } from "./game.js";
 
 const endMergerTurn = () => {
-  fetch("/game/merger/end-turn", { method: "POST" });
+  const gameId = window.location.pathname.split("/").pop();
+  fetch(`/game/${gameId}/merger/end-turn`, { method: "POST" });
 };
 
 export const renderMerge = (
@@ -22,16 +23,18 @@ class Merger {
   #acquirer;
   #defunctStocks;
   #activityConsole;
+  #gameId;
 
   constructor({ defunctStocks, acquirer }, activityConsole) {
     this.#cart = { sell: 0, trade: 0 };
     this.#acquirer = acquirer;
     this.#defunctStocks = defunctStocks;
     this.#activityConsole = activityConsole;
+    this.#gameId = window.location.pathname.split("/").pop();
   }
 
   #confirmDeal() {
-    fetch("/game/merger/deal", {
+    fetch(`/game/${this.#gameId}/merger/deal`, {
       method: "POST",
       body: JSON.stringify(this.#cart),
       headers: {

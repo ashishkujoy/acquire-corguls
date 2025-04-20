@@ -1,8 +1,5 @@
 const express = require("express");
 const { authorizeLobbyMember } = require("../middleware/lobby");
-const { Game, loadGame } = require("../models/game");
-const { createCorporations } = require("../models/corporation");
-const { createPlayers } = require("../models/player");
 
 const serveGameStats = (req, res) => {
   const { game } = req.app.context;
@@ -68,12 +65,8 @@ const getLobby = (req) => {
 
 const startGame = (req, res) => {
   const lobby = getLobby(req);
-  const { shuffle } = req.app.context;
-  const { id, players } = lobby.status();
-  const corporations = createCorporations();
 
-  const game = new Game(id, createPlayers(players), shuffle, corporations);
-
+  const game = req.app.context.gameManager.createGame(lobby);
   req.app.context.game = game;
   game.start();
   lobby.expire();
@@ -95,7 +88,8 @@ const verifyHost = (req, res, next) => {
 
 const configureGame = (req, res) => {
   const gameData = req.body;
-  const game = loadGame(gameData);
+  const { id } = req.params;
+  const game = req.app.context.gameManager.load(id, gameData);
   req.app.context.game = game;
   res.status(201).end();
 };
@@ -148,27 +142,40 @@ const confirmDefunct = (req, res) => {
   res.status(200).end();
 };
 
+const extractGame = (req, res, next) => {
+  const { id } = req.params;
+  const game = req.app.context.gameManager.findById(id);
+  if (!game) {
+    res.status(404);
+    return res.json({ message: `Game Not found: ${id}` });
+  }
+
+  req.app.context.game = game;
+  return next();
+};
+
 const createGameRouter = () => {
   const router = new express.Router();
 
-  router.post("/test", configureGame);
-  router.use(authorizeLobbyMember);
-  router.get("/", verifyStart, serveGamePage);
-  router.post("/start", verifyHost, verifyStart, startGame);
-  router.get("/status", serveGameStats);
-  router.post("/tile", validatePlayer, placeTile);
-  router.post("/end-turn", validatePlayer, endPlayerTurn);
-  router.post("/merger/deal", validatePlayer, dealDefunctStocks);
-  router.post("/merger/end-turn", validatePlayer, endMergerTurn);
-  router.post("/merger/resolve-conflict", validatePlayer, resolveConflict); // {acquirer, defunct}
+  router.post("/:id/test", configureGame);
+  router.use(["/:id", "/:id/*"], authorizeLobbyMember);
+  router.get("/:id", verifyStart, serveGamePage);
+  router.post("/:id/start", verifyHost, verifyStart, startGame);
+  router.use(["/:id", "/:id/*"], extractGame);
+  router.get("/:id/status", serveGameStats);
+  router.post("/:id/tile", validatePlayer, placeTile);
+  router.post("/:id/end-turn", validatePlayer, endPlayerTurn);
+  router.post("/:id/merger/deal", validatePlayer, dealDefunctStocks);
+  router.post("/:id/merger/end-turn", validatePlayer, endMergerTurn);
+  router.post("/:id/merger/resolve-conflict", validatePlayer, resolveConflict); // {acquirer, defunct}
 
-  router.post("/merger/resolve-acquirer", validatePlayer, selectAcquirer); // {acquirer}
-  router.post("/merger/confirm-defunct", validatePlayer, confirmDefunct); // {defunct}
+  router.post("/:id/merger/resolve-acquirer", validatePlayer, selectAcquirer); // {acquirer}
+  router.post("/:id/merger/confirm-defunct", validatePlayer, confirmDefunct); // {defunct}
 
-  router.get("/end-result", gameResult);
-  router.post("/buy-stocks", validatePlayer, buyStocks);
-  router.post("/establish", validatePlayer, establishCorporation);
-  router.post("/end-merge", endMerge);
+  router.get("/:id/end-result", gameResult);
+  router.post("/:id/buy-stocks", validatePlayer, buyStocks);
+  router.post("/:id/establish", validatePlayer, establishCorporation);
+  router.post("/:id/end-merge", endMerge);
 
   return router;
 };
