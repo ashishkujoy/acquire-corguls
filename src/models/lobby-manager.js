@@ -8,16 +8,29 @@ class LobbyManager {
     this.#idGenerator = idGenerator;
   }
 
-  createLobby(size) {
+  createLobby(size, name) {
     const id = this.#idGenerator.generate();
-    const lobby = new Lobby(id, size);
+    const lobby = new Lobby(id, size, name);
     this.#lobbies[id] = lobby;
 
     return id;
   }
 
+  createLobbyWithHost(size, name, host) {
+    const id = this.createLobby(size, name);
+    const lobby = this.findById(id);
+    lobby.addPlayer({ username: host });
+    return id;
+  }
+
   findById(id) {
     return this.#lobbies[id];
+  }
+
+  availableLobbies() {
+    return Object.values(this.#lobbies)
+      .map(lobby => lobby.status())
+      .filter(lobby => !lobby.isFull)
   }
 }
 

@@ -3,7 +3,7 @@ const getMessageElement = () => document.querySelector("#message");
 const getAnimationSection = () => document.querySelector("#animation");
 const getStartBtn = () => document.querySelector("#start-btn");
 
-const getLobbyStatus = (id = 0) => {
+const getLobbyStatus = (id) => {
   return fetch(`/lobby/${id}/status`).then(res => res.json());
 };
 
@@ -42,7 +42,9 @@ const gameHasStarted = ({ isPossibleToStartGame, hasExpired }) => {
 };
 
 const updateLobby = () => {
-  getLobbyStatus().then(status => {
+  const lobbyId = window.location.pathname.split("/").pop();
+
+  getLobbyStatus(lobbyId).then(status => {
     renderPlayers(status.players);
     renderStartBtn(status);
     console.log(status);

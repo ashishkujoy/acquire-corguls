@@ -3,9 +3,11 @@ class Lobby {
   #hasExpired;
   #players;
   #size;
+  #name;
 
-  constructor(id, size) {
+  constructor(id, size, name) {
     this.#id = id;
+    this.#name = name;
     this.#players = [];
     this.#hasExpired = false;
     this.#size = size;
@@ -33,6 +35,7 @@ class Lobby {
 
   status(username) {
     return {
+      name: this.#name,
       id: this.#id,
       players: this.#players.map(player => ({ ...player })),
       isFull: this.isFull(),

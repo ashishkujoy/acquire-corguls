@@ -16,6 +16,7 @@ const GameManager = require("../../src/models/game-manager");
 const joinPlayer = (app, username) => {
   return request(app)
     .post("/lobby/0/players")
+    .set("cookie", `username=${username}`)
     .send({ username })
     .expect(302)
     .expect("location", "/lobby/0");
@@ -444,6 +445,7 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=player")
         .send({ username })
         .expect(200)
         .end(() => {
@@ -492,11 +494,13 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=player1")
         .send({ username: username1 })
         .expect(200)
         .end(() => {
           request(app)
             .post("/lobby/0/players")
+            .set("cookie", "username=player2")
             .send({ username: username2 })
             .expect(200)
             .end(() => {
@@ -540,6 +544,7 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=player")
         .send({ username })
         .expect(200)
         .end(() => {
@@ -568,6 +573,7 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=player")
         .send({ username })
         .expect(200)
         .end(() => {
@@ -595,6 +601,7 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=player1")
         .send({ username: username1 })
         .expect(302)
         .expect("location", "/lobby")
@@ -629,12 +636,14 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=player1")
         .send({ username: username1 })
         .expect(302)
         .expect("location", "/lobby/0")
         .end(() => {
           request(app)
             .post("/lobby/0/players")
+            .set("cookie", "username=player2")
             .send({ username: username2 })
             .expect(302)
             .expect("location", "/lobby/0")
@@ -782,11 +791,13 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=player1")
         .send({ username: username1 })
         .expect(302)
         .end(() => {
           request(app)
             .post("/lobby/0/players")
+            .set("cookie", "username=player2")
             .send({ username: username2 })
             .expect(302)
             .end(() => {
@@ -873,7 +884,7 @@ describe("GameRouter", () => {
   describe("POST /game/test", () => {
     it("should load a game from a state", (_, done) => {
       const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
+      const lobby = new Lobby("0", size, "test lobby");
       const lobbyRouter = createLobbyRouter();
       const gameRouter = createGameRouter();
       const shuffle = x => x;
@@ -988,6 +999,7 @@ describe("GameRouter", () => {
       };
 
       const gameState = {
+        "id": "0",
         "setupTiles": [
           [
             { username: "biswa" },
@@ -1140,6 +1152,7 @@ describe("GameRouter", () => {
 
       request(app)
         .post("/lobby/0/players")
+        .set("cookie", "username=biswa")
         .send({ username: "biswa" })
         .expect(200)
         .end(() => {
@@ -1150,6 +1163,7 @@ describe("GameRouter", () => {
             .end(() => {
               request(app)
                 .post("/game/0/test")
+                .set("cookie", "username=biswa")
                 .send(gameState)
                 .expect(200)
                 .end(() => {

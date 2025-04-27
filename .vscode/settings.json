@@ -12,5 +12,10 @@
   "workbench.colorTheme": "One Monokai",
   "workbench.iconTheme": "material-icon-theme",
   "cSpell.words": ["sackson"],
-  "github-actions.workflows.pinned.workflows": [".github/workflows/build.yml"]
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/build.yml"
+  ],
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  }
 }

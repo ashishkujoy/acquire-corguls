@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <title>Acquire - Lobby</title>
+    <link rel="stylesheet" href="/styles/style.css" />
+    <link rel="stylesheet" href="/styles/page-layout.css" />
+    <link rel="stylesheet" href="/styles/lobby.css" />
+    <script src="/scripts/join-host.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <header id="page-header">
+        <h1 id="heading">ACQUIRE</h1>
+      </header>
+      <main id="page">
+        <section id="host-join">
+          <section id="host-section">
+            <header>
+              <h3>Host New Game</h3>
+            </header>
+            <form id="create-room-form" method="post">
+                <input type="text" name="name" id="lobby-name" required />
+              <button type="submit">Create</button>
+            </form>
+          </section>
+          <section id="join-section">
+            <header>
+              <h3>Available Lobbies</h3>
+            </header>
+            <template id="room">
+              <div class="room">
+                <h3 class="room-name"></h3>
+                <button class="join-room-btn">Join</button>
+              </div>
+            </template>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

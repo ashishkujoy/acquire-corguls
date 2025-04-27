@@ -22,13 +22,27 @@ const joinGame = res => {
   });
 };
 
+const login = ({ username }) => {
+  return fetch("/login", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ username }),
+  });
+};
+
+const visitJoinOrHost = () => {
+  window.location.assign("/joinorhost");
+}
+
 const setupJoinForm = () => {
   const joinFrom = getJoinForm();
   joinFrom.onsubmit = event => {
     event.preventDefault();
     const userData = Object.fromEntries(new FormData(joinFrom));
     joinFrom.reset();
-    requestJoinGame(userData).then(joinGame).catch(console.error);
+    login(userData).then(visitJoinOrHost).catch(console.error);
   };
 };
 

@@ -77,6 +77,7 @@ describe("POST /lobby/:id/players", () => {
     const username = "player";
     request(app)
       .post("/lobby/0/players")
+      .set("cookie", "username=player")
       .send({ username })
       .expect(302)
       .expect("location", "/lobby/0")

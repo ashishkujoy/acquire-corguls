@@ -60,7 +60,8 @@ const verifyStart = (req, res, next) => {
 };
 
 const getLobby = (req) => {
-  return req.app.context.lobbyManager.findById(0);
+  const { id } = req.params;
+  return req.app.context.lobbyManager.findById(id);
 };
 
 const startGame = (req, res) => {

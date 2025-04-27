@@ -6,9 +6,10 @@ describe("Lobby", () => {
   describe("status", () => {
     it("should get the lobby status", () => {
       const size = { lowerLimit: 3, upperLimit: 3 };
-      const lobby = new Lobby("0", size);
+      const lobby = new Lobby("0", size, "test lobby");
       const expectedStatus = {
         id: "0",
+        name: "test lobby",
         players: [],
         isFull: false,
         hasExpired: false,
@@ -73,7 +74,7 @@ describe("Lobby", () => {
     describe("expire", () => {
       it("should mark the lobby as expired", () => {
         const size = { lowerLimit: 2, upperLimit: 2 };
-        const lobby = new Lobby("0", size);
+        const lobby = new Lobby("0", size, "test lobby");
         const username1 = "player1";
         const username2 = "player2";
 
@@ -86,6 +87,7 @@ describe("Lobby", () => {
 
         const expectedLobbyStatus = {
           id: "0",
+          name: "test lobby",
           players: [player1, player2],
           isFull: true,
           hasExpired: true,

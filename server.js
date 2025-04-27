@@ -16,7 +16,7 @@ const logServerInfo = () => {
 const setUpLobbyManager = () => {
   const size = { lowerLimit: 2, upperLimit: 6 };
   let id = 0;
-  return new LobbyManager({ 0: new Lobby("0", size) }, { generate: () => ++id });
+  return new LobbyManager({ 0: new Lobby("0", size, "First Lobby") }, { generate: () => ++id });
 };
 
 const main = () => {
