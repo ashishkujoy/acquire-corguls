@@ -32,6 +32,15 @@ class LobbyManager {
       .map(lobby => lobby.status())
       .filter(lobby => !lobby.isFull)
   }
+
+  join(lobbyId, player) {
+    const lobby = this.findById(lobbyId);
+    if (!lobby) {
+      throw new Error("Lobby not found");
+    }
+    lobby.addPlayer(player);
+    return lobby.status();
+  }
 }
 
 module.exports = LobbyManager;

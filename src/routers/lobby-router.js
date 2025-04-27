@@ -45,7 +45,7 @@ const createNewLobby = (req, res) => {
   const size = { lowerLimit: 2, upperLimit: 6 };
   const { username } = req.cookies;
   const id = req.app.context.lobbyManager.createLobbyWithHost(size, name, username);
-  console.log("========", id);
+
   res.json({ id, name });
 }
 

@@ -83,9 +83,20 @@ const setUpStartButton = () => {
   };
 };
 
+const keepLobbyUpdatedOnEvent = () => {
+  const socket = io();
+  const lobbyId = window.location.pathname.split("/").pop();
+  socket.emit("joinlobby", { lobbyId });
+  socket.on("lobbyupdate", (status) => {
+    renderPlayers(status.players);
+    renderStartBtn(status);
+    if (gameHasStarted(status)) redirectToGame(status.id);
+  });
+}
+
 const main = () => {
   animate();
-  keepLobbyUpdated();
+  keepLobbyUpdatedOnEvent();
   setUpStartButton();
 };
 
