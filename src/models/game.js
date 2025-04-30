@@ -706,6 +706,11 @@ class Game {
     };
   }
 
+  statusForAll() {
+    const players = this.#players.map(player => player.username);
+    return players.map(player => ({ username: player, ...this.status(player) }));
+  }
+
   get result() {
     return this.#result;
   }

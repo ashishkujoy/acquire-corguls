@@ -29,6 +29,10 @@ class Lobby {
     this.#hasExpired = true;
   }
 
+  canBeJoined() {
+    return !this.isFull() && !this.#hasExpired;
+  }
+
   #getSelf(username) {
     return this.#players.filter(player => player.username === username).pop();
   }

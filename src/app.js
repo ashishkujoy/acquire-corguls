@@ -3,6 +3,8 @@ const cookieParser = require("cookie-parser");
 const { logRequest } = require("./middleware/logger");
 const { authorize } = require("./middleware/auth");
 const { loginUser } = require("./routers/auth-router");
+const { setupLobbyWebsocketEvents } = require("./routers/lobby-router");
+const { setupGameEventRoutes } = require("./routers/game-router");
 
 const serveHomePage = (_, res) => {
   res.sendFile("index.html", { root: "pages" });
@@ -20,11 +22,20 @@ const createApp = (lobbyRouter, gameRouter, context, preapp) => {
   app.use(logRequest);
   app.use(express.json());
   app.use(cookieParser());
+  app.use("/whoami", (req, res) => {
+    const { username } = req.cookies;
+    if (username) {
+      res.json({ username });
+    } else {
+      res.status(401).json({ error: "Unauthorized" });
+    }
+  });
   app.get("/", serveHomePage);
   app.post("/login", loginUser)
   app.get("/joinorhost", authorize, serveJoinOrHostPage);
   app.use("/lobby", lobbyRouter);
   app.use("/game", gameRouter);
+
   app.use(express.static("public"));
 
   setupEventRoutes(context);
@@ -54,14 +65,8 @@ const setupEventRoutes = (context) => {
   io.use(socketSessionMiddleware);
 
   io.on("connection", (socket) => {
-    console.log("A user connected");
-    socket.on("joinlobby", ({ lobbyId }) => {
-      console.log("User joined lobby", lobbyId, socket.username);
-      const { lobbyManager } = context;
-      const lobby = lobbyManager.findById(lobbyId);
-      socket.join(lobbyId);
-      io.to(lobbyId).emit("lobbyupdate", lobby.status(socket.username));
-    });
+    setupLobbyWebsocketEvents(context, socket);
+    setupGameEventRoutes(context, socket)
   });
 };
 

@@ -30,7 +30,7 @@ class LobbyManager {
   availableLobbies() {
     return Object.values(this.#lobbies)
       .map(lobby => lobby.status())
-      .filter(lobby => !lobby.isFull)
+      .filter(lobby => !lobby.isFull && !lobby.hasExpired);
   }
 
   join(lobbyId, player) {

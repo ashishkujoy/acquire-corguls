@@ -323,6 +323,26 @@ const notifyGameEnd = () => {
   activityConsole.append(gameEndElement);
 };
 
+const renderOnStatusUpdate = (gameStatus) => {
+  if (previousState === gameStatus.state && gameStatus.state !== "merge")
+    return;
+
+  if (gameStatus.state === "game-end") {
+    notifyGameEnd();
+    displayPlayerProfile(gameStatus);
+    previousState = gameStatus.state;
+    return;
+  }
+
+  displayPlayerProfile(gameStatus, previousState);
+  renderBoard(gameStatus);
+  // renderActivityMessage(gameStatus);
+  // setUpPlayerTilePlacing(gameStatus);
+  // startPurchase(gameStatus, getDisplayPanel());
+  renderCorporations(gameStatus);
+  previousState = gameStatus.state;
+}
+
 const renderGame = () => {
   const gameId = window.location.pathname.split("/").pop();
   fetch(`/game/${gameId}/status`)
@@ -615,17 +635,33 @@ const setupGame = () => {
   });
 };
 
-const keepPlayerProfileUpdated = () => {
+const keepGameUpdatedOnEvent = (username, gameService) => {
+  const socket = io();
+  const gameId = window.location.pathname.split("/").pop();
+  socket.emit("registerGameStatus", { gameId });
+
+  socket.on("gameStatus", (status) => {
+    renderOnStatusUpdate(status);
+    gameService.render();
+  });
+}
+
+const keepPlayerProfileUpdated = async () => {
   const interval = 1000;
+  const res = await fetch("/whoami");
+  const { username } = await res.json();
 
   setupGame().then(gameService => {
-    setTimeout(() => {
-      setInterval(() => {
-        renderGame();
-        gameService.render();
-      }, interval);
-    }, interval * 1);
+    keepGameUpdatedOnEvent(username, gameService);
   });
+  // setupGame().then(gameService => {
+  //   setTimeout(() => {
+  //     setInterval(() => {
+  //       renderGame();
+  //       gameService.render();
+  //     }, interval);
+  //   }, interval * 1);
+  // });
 
   setupHistory();
 };

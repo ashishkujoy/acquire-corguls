@@ -1,6 +1,7 @@
 const express = require("express");
 const { authorize } = require("../middleware/auth");
 const { authorizeLobbyMember } = require("../middleware/lobby");
+const { set } = require("lodash");
 
 const serveLobbyPage = (_, res) => {
   res.sendFile("lobby.html", { root: "pages" });
@@ -49,9 +50,23 @@ const createNewLobby = (req, res) => {
   res.json({ id, name });
 }
 
+const joinLobbyEvenHandler = (context, socket, data) => {
+  const { lobbyManager, io } = context;
+  const { lobbyId } = data;
+  const lobby = lobbyManager.findById(lobbyId);
+  socket.join(lobbyId);
+  io.to(lobbyId).emit("lobbyupdate", lobby.status(socket.username));
+}
+
+const setupLobbyWebsocketEvents = (context, socket) => {
+  if (!context.io) {
+    return;
+  }
+  socket.on("joinlobby", (data) => joinLobbyEvenHandler(context, socket, data));
+}
+
 const createLobbyRouter = () => {
   const router = new express.Router();
-
   router.get("/available", authorize, serveAvailableLobbies);
   router.post("/create", createNewLobby);
 
@@ -72,4 +87,4 @@ const createLobbyRouter = () => {
   return router;
 };
 
-module.exports = { createLobbyRouter };
+module.exports = { createLobbyRouter, setupLobbyWebsocketEvents };

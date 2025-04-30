@@ -1,5 +1,6 @@
 const express = require("express");
 const { authorizeLobbyMember } = require("../middleware/lobby");
+const { set, update } = require("lodash");
 
 const serveGameStats = (req, res) => {
   const { game } = req.app.context;
@@ -11,6 +12,14 @@ const serveGamePage = (_, res) => {
   res.sendFile("game.html", { root: "pages" });
 };
 
+const updateClients = (game, io) => {
+  game.statusForAll()
+    .forEach(status => {
+      const roomId = `${status.id}_${status.username}`;
+      io.to(roomId).emit("gameStatus", status);
+    });
+}
+
 const placeTile = (req, res) => {
   const { game } = req.app.context;
   const { username } = req.cookies;
@@ -18,12 +27,18 @@ const placeTile = (req, res) => {
 
   game.placeTile(username, tile);
   res.status(200).end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const endPlayerTurn = (req, res) => {
   const { game } = req.app.context;
   game.changeTurn();
   res.end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const gameResult = (req, res) => {
@@ -37,6 +52,9 @@ const buyStocks = (req, res) => {
 
   game.buyStocks(stocks);
   res.end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const establishCorporation = (req, res) => {
@@ -45,6 +63,9 @@ const establishCorporation = (req, res) => {
 
   game.establishCorporation({ name });
   res.end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const verifyStart = (req, res, next) => {
@@ -66,11 +87,16 @@ const getLobby = (req) => {
 
 const startGame = (req, res) => {
   const lobby = getLobby(req);
-
+  const { username } = req.cookies;
   const game = req.app.context.gameManager.createGame(lobby);
   req.app.context.game = game;
   game.start();
   lobby.expire();
+  const status = lobby.status(username);
+  if (req.app.context.io) {
+    console.log("Emitting lobby update", status.id);
+    req.app.context.io.to(status.id).emit("lobbyupdate", status);
+  }
   res.end();
 };
 
@@ -99,12 +125,18 @@ const endMerge = (req, res) => {
   const { game } = req.app.context;
   game.endMerge();
   res.status(200).end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const endMergerTurn = (req, res) => {
   const { game } = req.app.context;
   game.endMergerTurn();
   res.status(200).end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const dealDefunctStocks = (req, res) => {
@@ -113,12 +145,18 @@ const dealDefunctStocks = (req, res) => {
 
   game.dealDefunctStocks({ sell, trade });
   res.status(200).end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const resolveConflict = (req, res) => {
   const { game } = req.app.context;
   game.mergeTwoCorporation(req.body);
   res.status(200).end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const validatePlayer = (req, res, next) => {
@@ -134,6 +172,9 @@ const selectAcquirer = (req, res) => {
   const { acquirer } = req.body;
   game.selectAcquirer(acquirer);
   res.status(200).end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const confirmDefunct = (req, res) => {
@@ -141,6 +182,9 @@ const confirmDefunct = (req, res) => {
   const { defunct } = req.body;
   game.confirmDefunct(defunct);
   res.status(200).end();
+  if (req.app.context.io) {
+    updateClients(game, req.app.context.io);
+  }
 };
 
 const extractGame = (req, res, next) => {
@@ -154,6 +198,20 @@ const extractGame = (req, res, next) => {
   req.app.context.game = game;
   return next();
 };
+
+const setupGameEventRoutes = (context, socket) => {
+  socket.on("registerGameStatus", ({ gameId }) => {
+    const game = context.gameManager.findById(gameId);
+    const { username } = socket;
+    if (!game) {
+      socket.emit("error", { message: `Game Not found: ${gameId}` });
+      return;
+    }
+    const roomId = `${gameId}_${username}`;
+    socket.join(roomId);
+    context.io.to(roomId).emit("gameStatus", game.status(socket.username));
+  });
+}
 
 const createGameRouter = () => {
   const router = new express.Router();
@@ -183,4 +241,5 @@ const createGameRouter = () => {
 
 module.exports = {
   createGameRouter,
+  setupGameEventRoutes,
 };
