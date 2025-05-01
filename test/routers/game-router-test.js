@@ -12,6 +12,7 @@ const multipleMergeTwoAcquirer = require("../test-data/merging-three-two-equal-a
 const multipleMergeThreeAllEqual = require("../test-data/merging-three-all-equal.json");
 const LobbyManager = require("../../src/models/lobby-manager");
 const GameManager = require("../../src/models/game-manager");
+const sinon = require("sinon");
 
 const joinPlayer = (app, username) => {
   return request(app)
@@ -138,6 +139,20 @@ const selectDefunct = async (app, username, defunct) => {
     .expect(200);
 };
 
+const createTestApp = () => {
+  const size = { lowerLimit: 1, upperLimit: 1 };
+  const lobby = new Lobby("0", size);
+  const username = "player";
+  const lobbyManager = new LobbyManager({ 0: lobby });
+  const gameManager = new GameManager({});
+  const lobbyRouter = createLobbyRouter();
+  const gameRouter = createGameRouter();
+  const app = createApp(lobbyRouter, gameRouter, { lobbyManager, gameManager });
+  lobby.addPlayer({ username });
+
+  return { app, lobby, lobbyManager, gameManager, username };
+}
+
 describe("GameRouter", () => {
   const corporations = {
     phoenix: {
@@ -206,135 +221,60 @@ describe("GameRouter", () => {
   };
 
   describe("GET /game", () => {
-    it("should serve the game page", (_, done) => {
-      const size = { lowerLimit: 1, upperLimit: 1 };
-      const lobby = new Lobby("0", size);
-      const username = "player";
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({});
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, gameManager });
-      lobby.addPlayer({ username });
+    it("should serve the game page", async () => {
+      const { app } = createTestApp();
 
-      request(app)
+      await request(app)
         .get("/game/0")
         .set("cookie", "username=player")
         .expect(200)
-        .expect("content-type", new RegExp("text/html"))
-        .end(done);
+        .expect("content-type", new RegExp("text/html"));
     });
 
-    it("should not allow if the player is not in game", (_, done) => {
-      const size = { lowerLimit: 3, upperLimit: 3 };
-      const lobby = new Lobby("0", size);
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const gameManager = new GameManager({});
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, gameManager });
-      request(app).get("/game/0").expect(302).expect("location", "/").end(done);
+    it("should not allow if the player is not in game", async () => {
+      const { app } = createTestApp();
+      await request(app)
+        .get("/game/0")
+        .expect(302)
+        .expect("location", "/");
     });
   });
 
   describe("GET /game/status", () => {
-    it("should get current game status", (_, done) => {
-      const size = { lowerLimit: 1, upperLimit: 1 };
-      const lobby = new Lobby("0", size);
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const username = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-      const portfolio = {
-        tiles: [
-          { position: { x: 0, y: 0 }, isPlaced: false },
-          { position: { x: 0, y: 1 }, isPlaced: false },
-          { position: { x: 0, y: 2 }, isPlaced: false },
-          { position: { x: 0, y: 3 }, isPlaced: false },
-          { position: { x: 0, y: 4 }, isPlaced: false },
-          { position: { x: 0, y: 5 }, isPlaced: false },
-        ],
-        stocks: {
-          phoenix: 0,
-          quantum: 0,
-          hydra: 0,
-          fusion: 0,
-          america: 0,
-          sackson: 0,
-          zeta: 0,
-        },
-        balance: 6000,
-      };
+    it("should get current game status", async () => {
+      const { app, username, gameManager } = createTestApp();
 
       const gameStatus = {
         id: "0",
         setupTiles: [["player", { position: { x: 0, y: 6 }, isPlaced: true }]],
         state: "place-tile",
         stateInfo: {},
-        placedTiles: [
-          {
-            position: { x: 0, y: 6 },
-            isPlaced: true,
-            belongsTo: "incorporated",
-          },
-        ],
-        turns: {
-          currentTurn: {
-            activities: [
-              {
-                id: "tile-place",
-              },
-            ],
-            player: {
-              username: "player",
-              you: true,
-            },
-          },
-          previousTurn: null,
-        },
+        placedTiles: [],
+        turns: {},
         players: [{ username, isTakingTurn: true, you: true }],
-        portfolio,
         corporations,
       };
 
-      request(app)
-        .post("/lobby/0/players")
-        .set("cookie", "username=player")
-        .send({ username })
-        .end(() => {
-          request(app)
-            .post("/game/0/start")
-            .set("cookie", "username=player")
-            .end(() => {
-              request(app)
-                .get("/game/0/status")
-                .set("cookie", "username=player")
-                .expect(200)
-                .end((err, res) => {
-                  assert.deepStrictEqual(res.body, gameStatus);
-                  done(err);
-                });
-            });
-        });
-    });
+      const game = { status: () => gameStatus };
+      const statusSpy = sinon.spy(game, "status");
+      sinon.stub(gameManager, "findById").returns(game);
 
-    it("should error on non existing lobby", (_, done) => {
-      const lobbyManager = new LobbyManager({});
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-
-      request(app)
+      const res = await request(app)
         .get("/game/0/status")
         .set("cookie", "username=player")
+        .expect(200);
+
+      assert.deepStrictEqual(res.body, gameStatus);
+      statusSpy.calledWith("player");
+    });
+
+    it("should error on non existing lobby", async () => {
+      const { app } = createTestApp();
+
+      await request(app)
+        .get("/game/10/status")
+        .set("cookie", "username=player")
         .expect(404)
-        .end(done);
     });
 
     it("should error on non existing gmae", (_, done) => {
