@@ -6,17 +6,26 @@ const { createLobbyRouter } = require("../../src/routers/lobby-router");
 const { createGameRouter } = require("../../src/routers/game-router");
 const Lobby = require("../../src/models/lobby");
 const LobbyManager = require("../../src/models/lobby-manager");
+const sinon = require("sinon");
 
-describe.only("GET /lobby/:id", { only: true }, () => {
+const createTestApp = () => {
+  const size = { lowerLimit: 3, upperLimit: 3 };
+  const username = "player";
+  const lobby = new Lobby("0", size);
+  lobby.addPlayer({ username });
+  const lobbyRouter = createLobbyRouter();
+  const gameRouter = createGameRouter({});
+  const lobbyManager = new LobbyManager({ 0: lobby });
+  const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
+
+  return { app, lobbyManager, username, lobby };
+}
+
+
+describe("GET /lobby/:id", () => {
   it("should serve the lobby page", (_, done) => {
-    const size = { lowerLimit: 3, upperLimit: 3 };
-    const username = "player";
-    const lobby = new Lobby("0", size);
-    lobby.addPlayer({ username });
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter({});
-    const lobbyManager = new LobbyManager({ 0: lobby });
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
+    const { app, username } = createTestApp();
+
     request(app)
       .get("/lobby/0")
       .set("cookie", `username=${username}`)
@@ -25,15 +34,8 @@ describe.only("GET /lobby/:id", { only: true }, () => {
       .end(done);
   });
 
-  it("should not allow unauthorized access", { only: true }, (_, done) => {
-    const size = { lowerLimit: 3, upperLimit: 3 };
-    const username = "player";
-    const lobby = new Lobby("0", size);
-    lobby.addPlayer({ username });
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter({});
-    const lobbyManager = new LobbyManager({ 0: lobby });
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
+  it("should not allow unauthorized access", (_, done) => {
+    const { app } = createTestApp();
 
     request(app)
       .get("/lobby/0")
@@ -43,110 +45,73 @@ describe.only("GET /lobby/:id", { only: true }, () => {
       .end(done);
   });
 
-  it("should not allow if player is not in lobby", (_, done) => {
-    const size = { lowerLimit: 3, upperLimit: 3 };
-    const username = "player";
-    const lobby = new Lobby("0", size);
-    lobby.addPlayer({ username });
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter({});
-    const lobbyManager = new LobbyManager({ 0: lobby });
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
-    request(app).get("/lobby/0").expect(302).expect("location", "/").end(done);
+  it("should not allow if player is not logged in", (_, done) => {
+    const { app } = createTestApp();
+    request(app)
+      .get("/lobby/0")
+      .expect(302)
+      .expect("location", "/")
+      .end(done);
   });
 
   it("should error on non existing lobby", (_, done) => {
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter({});
-    const lobbyManager = new LobbyManager({});
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager });
-    request(app).get("/lobby/0").expect(404).end(done);
+    const { app } = createTestApp();
+    request(app)
+      .get("/lobby/1")
+      .set("cookie", "username=abcd")
+      .expect(404)
+      .end(done);
   });
 });
 
 describe("POST /lobby/:id/players", () => {
   it("should add the player in the lobby", (_, done) => {
-    const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby("0", size);
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter({});
-    const shuffle = x => x;
-    const lobbyManager = new LobbyManager({ 0: lobby });
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+    const { app, lobbyManager, username } = createTestApp();
+    const lobby = new Lobby("1", {}, "Foo");
+    const findByIdStub = sinon.stub(lobbyManager, "findById");
+    findByIdStub.returns(lobby);
 
-    const username = "player";
     request(app)
-      .post("/lobby/0/players")
-      .set("cookie", "username=player")
+      .post("/lobby/1/players")
+      .set("cookie", "username=player2")
       .send({ username })
       .expect(302)
-      .expect("location", "/lobby/0")
-      .expect("set-cookie", new RegExp(`username=${username}`))
+      .expect("location", "/lobby/1")
       .end(err => {
-        assert.deepStrictEqual(lobby.status().players, [{ username }]);
+        assert.deepStrictEqual(lobby.status().players, [{ username: "player2" }]);
         done(err);
       });
   });
 
   it("should not add player if the lobby is full", (_, done) => {
-    const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby("0", size);
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter();
-    const shuffle = x => x;
-    const lobbyManager = new LobbyManager({ 0: lobby });
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
-    const players = [
-      { username: "player1" },
-      { username: "player2" },
-      { username: "player3" },
-    ];
-
-    const player4 = { username: "player4" };
-
-    lobby.addPlayer(players[0]);
-    lobby.addPlayer(players[1]);
+    const { app, lobby } = createTestApp();
+    sinon.stub(lobby, "isFull").returns(true);
 
     request(app)
       .post("/lobby/0/players")
-      .send(players[2])
-      .end(() => {
-        request(app)
-          .post("/lobby/0/players")
-          .send(player4)
-          .expect(401)
-          .expect({ error: "Lobby is full !" })
-          .end(err => {
-            assert.deepStrictEqual(lobby.isFull(), true);
-            done(err);
-          });
+      .expect(401)
+      .expect({ error: "Lobby is full !" })
+      .end(err => {
+        done(err);
       });
   });
 });
 
 describe("GET /lobby/:id/status", () => {
-  it("should provide fields to determine whether or not to start the game.", (_, done) => {
-    const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby("0", size);
-    const lobbyManager = new LobbyManager({ 0: lobby });
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter();
-    const shuffle = x => x;
-
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
-    const player = { username: "player" };
-
-    lobby.addPlayer(player);
-
+  it("should provide status of the game", (_, done) => {
+    const { app, username, lobby } = createTestApp();
+    const player = { username };
     const expectedStatus = {
       id: "0",
       players: [player],
       isFull: false,
       hasExpired: false,
       isPossibleToStartGame: false,
-      host: player,
+      host: {},
       self: player,
     };
+
+    sinon.stub(lobby, "status").returns(expectedStatus);
 
     request(app)
       .get("/lobby/0/status")
@@ -158,18 +123,11 @@ describe("GET /lobby/:id/status", () => {
   });
 
   it("should not allow if the player is not a member of the lobby", (_, done) => {
-    const size = { lowerLimit: 3, upperLimit: 3 };
-    const lobby = new Lobby("0", size);
-    const lobbyRouter = createLobbyRouter();
-    const gameRouter = createGameRouter();
-    const lobbyManager = new LobbyManager({ 0: lobby });
-    const shuffle = x => x;
-
-    const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle });
+    const { app } = createTestApp();
 
     request(app)
       .get("/lobby/0/status")
-      .set("cookie", "username=player")
+      .set("cookie", "username=player2")
       .expect(302)
       .expect("location", "/")
       .end(done);

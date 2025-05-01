@@ -1,7 +1,6 @@
 const express = require("express");
 const { authorize } = require("../middleware/auth");
 const { authorizeLobbyMember } = require("../middleware/lobby");
-const { set } = require("lodash");
 
 const serveLobbyPage = (_, res) => {
   res.sendFile("lobby.html", { root: "pages" });

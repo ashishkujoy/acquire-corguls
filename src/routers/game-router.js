@@ -1,6 +1,5 @@
 const express = require("express");
 const { authorizeLobbyMember } = require("../middleware/lobby");
-const { set, update } = require("lodash");
 
 const serveGameStats = (req, res) => {
   const { game } = req.app.context;
