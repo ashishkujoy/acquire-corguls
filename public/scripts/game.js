@@ -336,39 +336,9 @@ const renderOnStatusUpdate = (gameStatus) => {
 
   displayPlayerProfile(gameStatus, previousState);
   renderBoard(gameStatus);
-  // renderActivityMessage(gameStatus);
-  // setUpPlayerTilePlacing(gameStatus);
-  // startPurchase(gameStatus, getDisplayPanel());
   renderCorporations(gameStatus);
   previousState = gameStatus.state;
 }
-
-const renderGame = () => {
-  const gameId = window.location.pathname.split("/").pop();
-  fetch(`/game/${gameId}/status`)
-    .then(res => res.json())
-    .then(gameStatus => {
-      if (previousState === gameStatus.state && gameStatus.state !== "merge")
-        return;
-
-      if (gameStatus.state === "game-end") {
-        notifyGameEnd();
-        displayPlayerProfile(gameStatus);
-        previousState = gameStatus.state;
-        return;
-      }
-
-      displayPlayerProfile(gameStatus, previousState);
-      renderBoard(gameStatus);
-      // renderActivityMessage(gameStatus);
-      // setUpPlayerTilePlacing(gameStatus);
-      // startPurchase(gameStatus, getDisplayPanel());
-      renderCorporations(gameStatus);
-      previousState = gameStatus.state;
-    });
-
-  setupInfoCard();
-};
 
 const flash = (element, time = 500) => {
   element.classList.add("flash");
@@ -629,39 +599,25 @@ const setupGame = () => {
     setupCorporationSelection(gameStatus);
 
     const components = createComponents(gameStatus);
-    const gameService = new GameService(gameGateway, components);
+    const gameService = new GameService(components);
 
     return gameService;
   });
 };
 
-const keepGameUpdatedOnEvent = (username, gameService) => {
+const keepGameUpdatedOnEvent = (gameService) => {
   const socket = io();
   const gameId = window.location.pathname.split("/").pop();
   socket.emit("registerGameStatus", { gameId });
 
   socket.on("gameStatus", (status) => {
     renderOnStatusUpdate(status);
-    gameService.render();
+    gameService.render(status);
   });
 }
 
 const keepPlayerProfileUpdated = async () => {
-  const interval = 1000;
-  const res = await fetch("/whoami");
-  const { username } = await res.json();
-
-  setupGame().then(gameService => {
-    keepGameUpdatedOnEvent(username, gameService);
-  });
-  // setupGame().then(gameService => {
-  //   setTimeout(() => {
-  //     setInterval(() => {
-  //       renderGame();
-  //       gameService.render();
-  //     }, interval);
-  //   }, interval * 1);
-  // });
+  setupGame().then(keepGameUpdatedOnEvent);
 
   setupHistory();
 };
