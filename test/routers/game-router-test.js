@@ -1,74 +1,15 @@
 const request = require("supertest");
 const assert = require("assert");
-const chai = require("chai");
 const { describe, it } = require("node:test");
 const { createApp } = require("../../src/app");
 const { createLobbyRouter } = require("../../src/routers/lobby-router");
 const { createGameRouter } = require("../../src/routers/game-router");
 const Lobby = require("../../src/models/lobby");
-const gameEndData = require("../test-data/all-stable-coporations.json");
-const mergerRound = require("../test-data/merger-round.json");
-const multipleMergeTwoAcquirer = require("../test-data/merging-three-two-equal-acquirer.json");
-const multipleMergeThreeAllEqual = require("../test-data/merging-three-all-equal.json");
 const LobbyManager = require("../../src/models/lobby-manager");
 const GameManager = require("../../src/models/game-manager");
 const sinon = require("sinon");
-
-const joinPlayer = (app, username) => {
-  return request(app)
-    .post("/lobby/0/players")
-    .set("cookie", `username=${username}`)
-    .send({ username })
-    .expect(302)
-    .expect("location", "/lobby/0");
-};
-
-const startGame = (app, admin) => {
-  return request(app)
-    .post("/game/0/start")
-    .set("cookie", `username=${admin}`)
-    .expect(200);
-};
-
-const placeTile = (app, username, tile) => {
-  return request(app)
-    .post("/game/0/tile")
-    .set("cookie", `username=${username}`)
-    .send(tile)
-    .expect(200);
-};
-
-const loadGame = (app, username, gameData) => {
-  return request(app)
-    .post("/game/0/test")
-    .send(gameData)
-    .set("cookie", `username=${username}`)
-    .expect(201);
-};
-
-const establishCorp = (app, username, corpName) => {
-  return request(app)
-    .post("/game/0/establish")
-    .send({ name: corpName })
-    .set("cookie", `username=${username}`)
-    .expect(200);
-};
-
-const buyStocks = (app, username, stocks) => {
-  return request(app)
-    .post("/game/0/buy-stocks")
-    .set("cookie", `username=${username}`)
-    .send(stocks)
-    .expect(200);
-};
-
-const getGameStatus = async (app, username) => {
-  const result = await request(app)
-    .get("/game/0/status")
-    .set("cookie", `username=${username}`);
-
-  return result.body;
-};
+const express = require("express");
+const cookieParser = require("cookie-parser");
 
 const endMerge = (app, username) => {
   return request(app)
@@ -77,41 +18,20 @@ const endMerge = (app, username) => {
     .expect(200);
 };
 
-const resolveConflict = (app, username, body) => {
+const resolveConflict = (app, username, body, statusCode = 200) => {
   return request(app)
     .post("/game/0/merger/resolve-conflict")
     .set("cookie", `username=${username}`)
     .send(body)
-    .expect(200);
+    .expect(statusCode);
 };
 
-const endTurn = (app, username) => {
-  return request(app)
-    .post("/game/0/end-turn")
-    .set("cookie", `username=${username}`)
-    .expect(200);
-};
-
-const dealDefunctStocks = (app, username, cart) => {
+const dealDefunctStocks = (app, username, cart, statusCode = 200) => {
   return request(app)
     .post("/game/0/merger/deal")
     .send(cart)
     .set("cookie", `username=${username}`)
-    .expect(200);
-};
-
-const endMergerTurn = (app, username) => {
-  return request(app)
-    .post("/game/0/merger/end-turn")
-    .set("cookie", `username=${username}`)
-    .expect(200);
-};
-
-const badRequest = (app, username, url) => {
-  return request(app)
-    .post(url)
-    .set("cookie", `username=${username}`)
-    .expect(400);
+    .expect(statusCode);
 };
 
 const gameResult = async (app, username) => {
@@ -123,21 +43,6 @@ const gameResult = async (app, username) => {
   return result.body;
 };
 
-const selectAcquirer = async (app, username, acquirer) => {
-  return request(app)
-    .post("/game/0/merger/resolve-acquirer")
-    .set("cookie", `username=${username}`)
-    .send({ acquirer })
-    .expect(200);
-};
-
-const selectDefunct = async (app, username, defunct) => {
-  return request(app)
-    .post("/game/0/merger/confirm-defunct")
-    .set("cookie", `username=${username}`)
-    .send({ defunct })
-    .expect(200);
-};
 
 const createTestApp = () => {
   const size = { lowerLimit: 1, upperLimit: 1 };
@@ -147,7 +52,16 @@ const createTestApp = () => {
   const gameManager = new GameManager({});
   const lobbyRouter = createLobbyRouter();
   const gameRouter = createGameRouter();
-  const app = createApp(lobbyRouter, gameRouter, { lobbyManager, gameManager });
+  const app = express();
+  app.use(cookieParser());
+  app.use((req, res, next) => {
+    // if (req.cookies.username === username) {
+    req.isAuthenticated = () => true;
+    req.user = { username }
+    // }
+    next();
+  });
+  createApp(lobbyRouter, gameRouter, { lobbyManager, gameManager }, app);
   lobby.addPlayer({ username });
 
   return { app, lobby, lobbyManager, gameManager, username };
@@ -265,7 +179,7 @@ describe("GameRouter", () => {
         .expect(200);
 
       assert.deepStrictEqual(res.body, gameStatus);
-      statusSpy.calledWith("player");
+      assert(statusSpy.calledWith("player"));
     });
 
     it("should error on non existing lobby", async () => {
@@ -277,1149 +191,342 @@ describe("GameRouter", () => {
         .expect(404)
     });
 
-    it("should error on non existing gmae", (_, done) => {
-      const size = { lowerLimit: 1, upperLimit: 1 };
-      const lobby = new Lobby("0", size);
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const username = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+    it("should error on non existing game", async () => {
+      const { app } = createTestApp();
 
-      request(app)
-        .post("/lobby/0/players")
+      const res = await request(app)
+        .get("/game/0/status")
         .set("cookie", "username=player")
-        .send({ username })
-        .end(() => {
-          request(app)
-            .get("/game/0/status")
-            .set("cookie", "username=player")
-            .expect(404)
-            .end((err, res) => {
-              assert.deepStrictEqual(res.body, { message: "Game Not found: 0" });
-              done(err);
-            });
-        });
+        .expect(404);
+
+      assert.deepStrictEqual(await res.body, { message: "Game Not found: 0" });
     });
   });
 
   describe("POST /game/tile", () => {
-    it("should place a tile on the board, in the specified position", (_, done) => {
-      const size = { lowerLimit: 1, upperLimit: 1 };
-      const lobby = new Lobby("0", size);
-      const username = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const shuffle = x => x;
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+    it("should place a tile on the board, in the specified position", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = { placeTile: sinon.fake, currentPlayerName: () => "player" };
+      sinon.stub(gameManager, "findById").returns(game);
+      const placeTileStub = sinon.stub(game, "placeTile").returns(true);
 
-      const gameStatus = {
-        id: "0",
-        state: "buy-stocks",
-        stateInfo: {},
-        setupTiles: [["player", { position: { x: 0, y: 6 }, isPlaced: true }]],
-        placedTiles: [
-          {
-            position: { x: 0, y: 6 },
-            isPlaced: true,
-            belongsTo: "incorporated",
-          },
-          {
-            position: { x: 0, y: 0 },
-            isPlaced: true,
-            belongsTo: "incorporated",
-          },
-        ],
-        players: [{ username, isTakingTurn: true, you: true }],
-        turns: {
-          currentTurn: {
-            activities: [
-              {
-                data: {
-                  belongsTo: "incorporated",
-                  isPlaced: true,
-                  position: {
-                    x: 0,
-                    y: 0,
-                  },
-                },
-                id: "tile-place",
-              },
-              {
-                id: "buy-stocks",
-              },
-            ],
-            player: {
-              username: "player",
-              you: true,
-            },
-          },
-          previousTurn: null,
-        },
-        portfolio: {
-          tiles: [
-            { position: { x: 0, y: 0 }, isPlaced: true },
-            { position: { x: 0, y: 1 }, isPlaced: false },
-            { position: { x: 0, y: 2 }, isPlaced: false },
-            { position: { x: 0, y: 3 }, isPlaced: false },
-            { position: { x: 0, y: 4 }, isPlaced: false },
-            { position: { x: 0, y: 5 }, isPlaced: false },
-          ],
-          stocks: {
-            phoenix: 0,
-            quantum: 0,
-            hydra: 0,
-            fusion: 0,
-            america: 0,
-            sackson: 0,
-            zeta: 0,
-          },
-          balance: 6000,
-        },
-        corporations,
-      };
-
-      request(app)
-        .post("/lobby/0/players")
+      await request(app)
+        .post("/game/0/tile")
         .set("cookie", "username=player")
-        .send({ username })
-        .expect(200)
-        .end(() => {
-          request(app)
-            .post("/game/0/start")
-            .set("cookie", "username=player")
-            .end(() => {
-              request(app)
-                .post("/game/0/tile")
-                .set("cookie", "username=player")
-                .send({ x: 0, y: 0 })
-                .expect(200)
-                .end(() => {
-                  request(app)
-                    .get("/game/0/status")
-                    .set("cookie", "username=player")
-                    .expect(200)
-                    .expect("content-type", new RegExp("application/json"))
-                    .end((err, res) => {
-                      assert.deepStrictEqual(res.body, gameStatus);
-                      done(err);
-                    });
-                });
-            });
-        });
+        .send({ x: 0, y: 1 })
+        .expect(200);
+
+      assert(placeTileStub.calledWith("player", { x: 0, y: 1 }));
     });
   });
 
   describe("POST /game/end-turn", () => {
-    it("should change the turn of a player", (_, done) => {
-      const size = { lowerLimit: 2, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const username1 = "player1";
-      const username2 = "player2";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const shuffle = x => x;
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+    it("should change the turn of a player", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = { changeTurn: sinon.fake, currentPlayerName: () => "player" };
+      sinon.stub(gameManager, "findById").returns(game);
+      const changeTurnStub = sinon.stub(game, "changeTurn").returns(true);
 
-      const expectedPlayers = [
-        { username: username1, isTakingTurn: false, you: true },
-        { username: username2, isTakingTurn: true, you: false },
-      ];
+      await request(app)
+        .post("/game/0/end-turn")
+        .set("cookie", "username=player")
+        .expect(200);
 
-      request(app)
-        .post("/lobby/0/players")
-        .set("cookie", "username=player1")
-        .send({ username: username1 })
-        .expect(200)
-        .end(() => {
-          request(app)
-            .post("/lobby/0/players")
-            .set("cookie", "username=player2")
-            .send({ username: username2 })
-            .expect(200)
-            .end(() => {
-              request(app)
-                .post("/game/0/start")
-                .set("cookie", "username=player1")
-                .expect(200)
-                .end(() => {
-                  request(app)
-                    .post("/game/0/end-turn")
-                    .set("cookie", "username=player1")
-                    .expect(200)
-                    .end(() => {
-                      request(app)
-                        .get("/game/0/status")
-                        .set("cookie", "username=player1")
-                        .expect(200)
-                        .end((err, res) => {
-                          const { players } = res.body;
-                          assert.deepStrictEqual(players, expectedPlayers);
-                          done(err);
-                        });
-                    });
-                });
-            });
-        });
+      assert(changeTurnStub.calledOnce);
     });
   });
 
   describe("POST /game/start", () => {
-    it("should start the game when has enough players", (_, done) => {
-      const size = { lowerLimit: 1, upperLimit: 1 };
-      const lobby = new Lobby("0", size);
-      const username = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+    it("should start the game when has enough players", async () => {
+      const { app, gameManager, lobby } = createTestApp();
+      const game = { start: sinon.fake, }
+      const statusStub = sinon.stub(lobby, "status").returns({
+        isPossibleToStartGame: true,
+        players: [{ username: "player" }],
+        self: { username: "player" },
+        host: { username: "player" }
+      });
+      const createGameStub = sinon.stub(gameManager, "createGame").returns(game);
 
-      request(app)
-        .post("/lobby/0/players")
+      await request(app)
+        .post("/game/0/start")
         .set("cookie", "username=player")
-        .send({ username })
-        .expect(200)
-        .end(() => {
-          request(app)
-            .post("/game/0/start")
-            .set("cookie", "username=player")
-            .expect(200)
-            .end(err => {
-              const { hasExpired } = lobby.status();
-              assert.ok(hasExpired);
-              done(err);
-            });
-        });
+        .expect(200);
+
+      assert(statusStub.calledWith("player"));
+      assert(createGameStub.calledWith(lobby));
     });
 
-    it("should redirect to the home page when not enough players has joined", (_, done) => {
-      const size = { lowerLimit: 2, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const username = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+    it("should redirect to the home page when not enough players has joined", async () => {
+      const { app, lobby } = createTestApp();
+      const statusStub = sinon.stub(lobby, "status").returns({
+        isPossibleToStartGame: false,
+        players: [{ username: "player" }],
+        self: { username: "player" },
+        host: { username: "player" }
+      });
 
-      request(app)
-        .post("/lobby/0/players")
+      await request(app)
+        .post("/game/0/start")
         .set("cookie", "username=player")
-        .send({ username })
-        .expect(200)
-        .end(() => {
-          request(app)
-            .post("/game/0/start")
-            .set("cookie", "username=player")
-            .expect(302)
-            .expect("location", "/lobby")
-            .end(done);
-        });
+        .expect(302)
+        .expect("location", "/lobby");
+
+      assert(statusStub.calledWith("player"));
     });
 
-    it("should start the game on host request", (_, done) => {
-      const size = { lowerLimit: 2, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+    it("should start the game only on host request", async () => {
+      const { app, lobby } = createTestApp();
+      const statusStub = sinon.stub(lobby, "status").returns({
+        isPossibleToStartGame: true,
+        players: [{ username: "player" }],
+        self: { username: "player" },
+        host: { username: "player6" }
+      });
 
-      const username1 = "player1";
-      const username2 = "player2";
+      await request(app)
+        .post("/game/0/start")
+        .set("cookie", "username=player")
+        .expect(400);
 
-      request(app)
-        .post("/lobby/0/players")
-        .set("cookie", "username=player1")
-        .send({ username: username1 })
-        .expect(302)
-        .expect("location", "/lobby")
-        .end(() => {
-          request(app)
-            .post("/lobby/0/players")
-            .send({ username: username2 })
-            .expect(302)
-            .expect("location", "/lobby")
-            .end(() => {
-              request(app)
-                .post("/game/0/start")
-                .set("cookie", "username=player1")
-                .expect(200)
-                .end(done);
-            });
-        });
-    });
-
-    it("should start the game only on host request", (_, done) => {
-      const size = { lowerLimit: 2, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-      const username1 = "player1";
-      const username2 = "player2";
-
-      request(app)
-        .post("/lobby/0/players")
-        .set("cookie", "username=player1")
-        .send({ username: username1 })
-        .expect(302)
-        .expect("location", "/lobby/0")
-        .end(() => {
-          request(app)
-            .post("/lobby/0/players")
-            .set("cookie", "username=player2")
-            .send({ username: username2 })
-            .expect(302)
-            .expect("location", "/lobby/0")
-            .end(() => {
-              request(app)
-                .post("/game/0/start")
-                .set("cookie", "username=player2")
-                .expect(400)
-                .end(done);
-            });
-        });
+      assert(statusStub.calledWith("player"));
     });
   });
 
   describe("POST /game/establish", () => {
-    it("should establish selected corporation", (_, done) => {
-      const size = { lowerLimit: 2, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const username1 = "player1";
-      const username2 = "player2";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-      const portfolio = {
-        tiles: [
-          { position: { x: 0, y: 0 }, isPlaced: true },
-          { position: { x: 0, y: 1 }, isPlaced: false },
-          { position: { x: 0, y: 2 }, isPlaced: false },
-          { position: { x: 0, y: 3 }, isPlaced: false },
-          { position: { x: 0, y: 4 }, isPlaced: false },
-          { position: { x: 0, y: 5 }, isPlaced: false },
-        ],
-        stocks: {
-          phoenix: 1,
-          quantum: 0,
-          hydra: 0,
-          fusion: 0,
-          america: 0,
-          sackson: 0,
-          zeta: 0,
-        },
-        balance: 6000,
+    it("should establish selected corporation", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player",
+        establishCorporation: sinon.fake,
       };
+      sinon.stub(gameManager, "findById").returns(game);
+      const establishCorporationStub = sinon.stub(game, "establishCorporation");
 
-      const gameStatus = {
-        id: "0",
-        setupTiles: [
-          [
-            "player1",
-            {
-              position: { x: 1, y: 0 },
-              isPlaced: true,
-            },
-          ],
-          [
-            "player2",
-            {
-              position: { x: 1, y: 1 },
-              isPlaced: true,
-            },
-          ],
-        ],
-        turns: {
-          currentTurn: {
-            activities: [
-              {
-                data: {
-                  belongsTo: "phoenix",
-                  isPlaced: true,
-                  position: {
-                    x: 0,
-                    y: 0,
-                  },
-                },
-                id: "tile-place",
-              },
-              {
-                data: {
-                  name: "phoenix",
-                },
-                id: "establish",
-              },
-              {
-                id: "buy-stocks",
-              },
-            ],
-            player: {
-              username: "player1",
-              you: true,
-            },
-          },
-          previousTurn: null,
-        },
-        state: "buy-stocks",
-        stateInfo: {},
-        placedTiles: [
-          {
-            belongsTo: "phoenix",
-            isPlaced: true,
-            position: {
-              x: 1,
-              y: 0,
-            },
-          },
-          {
-            belongsTo: "phoenix",
-            isPlaced: true,
-            position: {
-              x: 1,
-              y: 1,
-            },
-          },
-          {
-            belongsTo: "phoenix",
-            isPlaced: true,
-            position: {
-              x: 0,
-              y: 0,
-            },
-          },
-        ],
+      await request(app)
+        .post("/game/0/establish")
+        .send({ name: "phoenix" })
+        .set("cookie", "username=player")
+        .expect(200);
 
-        players: [
-          { username: username1, isTakingTurn: true, you: true },
-          { username: username2, isTakingTurn: false, you: false },
-        ],
-        portfolio,
-        corporations: {
-          ...corporations,
-          phoenix: {
-            stocks: 24,
-            size: 3,
-            isActive: true,
-            isSafe: false,
-            price: 500,
-            majorityPrice: 5000,
-            minorityPrice: 2500,
-          },
-        },
+      assert(establishCorporationStub.calledWith({ name: "phoenix" }))
+    });
+
+    it("should only allow current player to establish selected corporation", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player2",
+        establishCorporation: sinon.fake,
       };
+      sinon.stub(gameManager, "findById").returns(game);
 
-      request(app)
-        .post("/lobby/0/players")
-        .set("cookie", "username=player1")
-        .send({ username: username1 })
-        .expect(302)
-        .end(() => {
-          request(app)
-            .post("/lobby/0/players")
-            .set("cookie", "username=player2")
-            .send({ username: username2 })
-            .expect(302)
-            .end(() => {
-              request(app)
-                .post("/game/0/start")
-                .set("cookie", "username=player1")
-                .expect(200)
-                .end(() => {
-                  request(app)
-                    .post("/game/0/tile")
-                    .set("cookie", "username=player1")
-                    .send({ x: 0, y: 0 })
-                    .expect(200)
-                    .end(() => {
-                      request(app)
-                        .post("/game/0/establish")
-                        .send({ name: "phoenix" })
-                        .set("cookie", "username=player1")
-                        .expect(200)
-                        .end(() => {
-                          request(app)
-                            .get("/game/0/status")
-                            .set("cookie", "username=player1")
-                            .expect(200)
-                            .end((err, res) => {
-                              assert.deepStrictEqual(res.body, gameStatus);
-                              done(err);
-                            });
-                        });
-                    });
-                });
-            });
-        });
+      await request(app)
+        .post("/game/0/establish")
+        .send({ name: "phoenix" })
+        .set("cookie", "username=player")
+        .expect(400);
     });
   });
 
   describe("POST /game/buy-stocks", () => {
     it("should buy stocks of an active corporation", async () => {
-      const size = { lowerLimit: 2, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const username1 = "player1";
-      const username2 = "player2";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-      const portfolio = {
-        tiles: [
-          { position: { x: 0, y: 0 }, isPlaced: true },
-          { position: { x: 0, y: 1 }, isPlaced: false },
-          { position: { x: 0, y: 2 }, isPlaced: false },
-          { position: { x: 0, y: 3 }, isPlaced: false },
-          { position: { x: 0, y: 4 }, isPlaced: false },
-          { position: { x: 0, y: 5 }, isPlaced: false },
-        ],
-        stocks: {
-          phoenix: 2,
-          quantum: 0,
-          hydra: 0,
-          fusion: 0,
-          america: 0,
-          sackson: 0,
-          zeta: 0,
-        },
-        balance: 5500,
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player",
+        buyStocks: sinon.fake,
       };
+      sinon.stub(gameManager, "findById").returns(game);
+      const buyStocksStub = sinon.stub(game, "buyStocks").returns({});
+      const stocks = [{ name: "phoenix", price: 1000 }];
 
-      await joinPlayer(app, username1);
-      await joinPlayer(app, username2);
-      await startGame(app, username1);
-      await placeTile(app, username1, { x: 0, y: 0 });
-      await establishCorp(app, username1, "phoenix");
-      await buyStocks(app, username1, [{ name: "phoenix", price: 1000 }]);
+      await request(app)
+        .post("/game/0/buy-stocks")
+        .set("cookie", `username=player`)
+        .send(stocks)
+        .expect(200);
 
-      const status = await getGameStatus(app, username1);
-      assert.strictEqual(status.state, "tile-placed");
-      assert.deepStrictEqual(status.portfolio, portfolio);
+      assert(buyStocksStub.calledWith(stocks));
     });
   });
 
   describe("POST /game/test", () => {
-    it("should load a game from a state", (_, done) => {
-      const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size, "test lobby");
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+    it("should load a game from a state", async () => {
+      const { app, gameManager } = createTestApp();
+      const loadStub = sinon.stub(gameManager, "load").returns({});
+      const fakeGameData = { players: ["Fake1", "Fake2"] };
 
-      const expectedStatus = {
-        id: "0",
-        "state": "place-tile",
-        "stateInfo": {},
-        "setupTiles": [
-          [
-            "biswa",
-            {
-              "position": {
-                "x": 1,
-                "y": 6,
-              },
-              "isPlaced": true,
-            },
-          ],
-        ],
-        "players": [
-          {
-            "username": "biswa",
-            "isTakingTurn": true,
-            "you": true,
-          },
-        ],
-        turns: {
-          currentTurn: {
-            activities: [
-              {
-                id: "tile-place",
-              },
-            ],
-            player: {
-              username: "biswa",
-              you: true,
-            },
-          },
-          previousTurn: null,
-        },
-        "portfolio": {
-          "tiles": [
-            {
-              "position": {
-                "x": 0,
-                "y": 0,
-              },
-              "isPlaced": false,
-            },
-            {
-              "position": {
-                "x": 0,
-                "y": 1,
-              },
-              "isPlaced": false,
-            },
-            {
-              "position": {
-                "x": 0,
-                "y": 2,
-              },
-              "isPlaced": false,
-            },
-            {
-              "position": {
-                "x": 0,
-                "y": 3,
-              },
-              "isPlaced": false,
-            },
-            {
-              "position": {
-                "x": 0,
-                "y": 4,
-              },
-              "isPlaced": false,
-            },
-            {
-              "position": {
-                "x": 0,
-                "y": 5,
-              },
-              "isPlaced": false,
-            },
-          ],
-          "stocks": {
-            "phoenix": 0,
-            "quantum": 0,
-            "hydra": 0,
-            "fusion": 0,
-            "america": 0,
-            "sackson": 0,
-            "zeta": 0,
-          },
-          "balance": 6000,
-        },
-        "placedTiles": [
-          {
-            "position": {
-              "x": 0,
-              "y": 6,
-            },
-            "isPlaced": true,
-            "belongsTo": "incorporated",
-          },
-        ],
-        corporations,
-      };
-
-      const gameState = {
-        "id": "0",
-        "setupTiles": [
-          [
-            { username: "biswa" },
-            {
-              "position": {
-                "x": 1,
-                "y": 6,
-              },
-              "isPlaced": true,
-            },
-          ],
-        ],
-        "players": [
-          {
-            "username": "biswa",
-            "portfolio": {
-              "tiles": [
-                {
-                  "position": {
-                    "x": 0,
-                    "y": 0,
-                  },
-                  "isPlaced": false,
-                },
-                {
-                  "position": {
-                    "x": 0,
-                    "y": 1,
-                  },
-                  "isPlaced": false,
-                },
-                {
-                  "position": {
-                    "x": 0,
-                    "y": 2,
-                  },
-                  "isPlaced": false,
-                },
-                {
-                  "position": {
-                    "x": 0,
-                    "y": 3,
-                  },
-                  "isPlaced": false,
-                },
-                {
-                  "position": {
-                    "x": 0,
-                    "y": 4,
-                  },
-                  "isPlaced": false,
-                },
-                {
-                  "position": {
-                    "x": 0,
-                    "y": 5,
-                  },
-                  "isPlaced": false,
-                },
-              ],
-              "stocks": {
-                "phoenix": 0,
-                "quantum": 0,
-                "hydra": 0,
-                "fusion": 0,
-                "america": 0,
-                "sackson": 0,
-                "zeta": 0,
-              },
-              "balance": 6000,
-            },
-          },
-        ],
-        "placedTiles": [
-          {
-            "position": {
-              "x": 0,
-              "y": 6,
-            },
-            "isPlaced": true,
-            "belongsTo": "incorporated",
-          },
-        ],
-        corporations: {
-          "phoenix": {
-            "stocks": 25,
-            "size": 0,
-            "isActive": false,
-            "price": 0,
-            "majorityPrice": 2000,
-            "minorityPrice": 1000,
-            "isSafe": false,
-          },
-          "quantum": {
-            "stocks": 25,
-            "size": 0,
-            "isActive": false,
-            "price": 0,
-            "majorityPrice": 2000,
-            "minorityPrice": 1000,
-            "isSafe": false,
-          },
-          "fusion": {
-            "stocks": 25,
-            "size": 0,
-            "isActive": false,
-            "price": 0,
-            "majorityPrice": 2000,
-            "minorityPrice": 1000,
-            "isSafe": false,
-          },
-          "hydra": {
-            "stocks": 25,
-            "size": 0,
-            "isActive": false,
-            "price": 800,
-            "majorityPrice": 2000,
-            "minorityPrice": 1000,
-            "isSafe": false,
-          },
-          "america": {
-            "stocks": 25,
-            "size": 0,
-            "isActive": false,
-            "price": 0,
-            "majorityPrice": 2000,
-            "minorityPrice": 1000,
-            "isSafe": false,
-          },
-          "zeta": {
-            "stocks": 25,
-            "size": 0,
-            "isActive": false,
-            "price": 0,
-            "majorityPrice": 2000,
-            "minorityPrice": 1000,
-            "isSafe": false,
-          },
-          "sackson": {
-            "stocks": 25,
-            "size": 0,
-            "isActive": false,
-            "price": 0,
-            "majorityPrice": 2000,
-            "minorityPrice": 1000,
-            "isSafe": false,
-          },
-        },
-      };
-
-      request(app)
-        .post("/lobby/0/players")
+      await request(app)
+        .post("/game/0/test")
         .set("cookie", "username=biswa")
-        .send({ username: "biswa" })
-        .expect(200)
-        .end(() => {
-          request(app)
-            .post("/game/0/start")
-            .set("cookie", "username=biswa")
-            .expect(200)
-            .end(() => {
-              request(app)
-                .post("/game/0/test")
-                .set("cookie", "username=biswa")
-                .send(gameState)
-                .expect(200)
-                .end(() => {
-                  request(app)
-                    .get("/game/0/status")
-                    .expect(200)
-                    .set("cookie", "username=biswa")
-                    .end((err, res) => {
-                      assert.deepStrictEqual(res.body, expectedStatus);
-                      done(err);
-                    });
-                });
-            });
-        });
+        .send(fakeGameData)
+        .expect(201);
+
+      assert(loadStub.calledWith("0", fakeGameData));
     });
   });
 
   describe("POST /game/end-merge", () => {
     it("should end the merge state", async () => {
-      const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const player = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+      const { app, gameManager } = createTestApp();
+      const game = { endMerge: sinon.fake };
+      const endMergeStub = sinon.stub(game, "endMerge");
+      sinon.stub(gameManager, "findById").returns(game);
 
-      await joinPlayer(app, player);
-      await startGame(app, player);
-      await placeTile(app, player, { x: 0, y: 5 });
-      await establishCorp(app, player, "phoenix");
-
-      await placeTile(app, player, { x: 0, y: 1 });
-      await placeTile(app, player, { x: 0, y: 2 });
-      await placeTile(app, player, { x: 0, y: 3 });
-      await establishCorp(app, player, "quantum");
-
-      await placeTile(app, player, { x: 0, y: 4 });
-
-      let status = await getGameStatus(app, player);
-      assert.strictEqual(status.state, "merge");
-
-      await endMerge(app, player);
-      status = await getGameStatus(app, player);
-      chai.expect(status.state).to.not.equal("merge");
+      await endMerge(app, "player");
+      assert.equal(endMergeStub.callCount, 1);
     });
   });
 
   describe("POST /game/resolve-conflict", () => {
     it("should resolve merge conflict by merge maker", async () => {
-      const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const player = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player",
+        mergeTwoCorporation: sinon.fake,
+      }
+      const conflictResolverStub = sinon.stub(game, "mergeTwoCorporation").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      const companies = { acquirer: "phoenix", defunct: "quantum", };
 
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+      await resolveConflict(app, "player", companies);
 
-      await joinPlayer(app, player);
-      await startGame(app, player);
-      await placeTile(app, player, { x: 0, y: 5 });
-      await establishCorp(app, player, "phoenix");
+      assert(conflictResolverStub.calledWith(companies));
+    });
 
-      await placeTile(app, player, { x: 0, y: 2 });
-      await placeTile(app, player, { x: 0, y: 3 });
-      await establishCorp(app, player, "quantum");
+    it("should allow to resolve merge conflict by merge maker only", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player2",
+        mergeTwoCorporation: sinon.fake,
+      }
+      const conflictResolverStub = sinon.stub(game, "mergeTwoCorporation").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      const companies = { acquirer: "phoenix", defunct: "quantum", };
 
-      await placeTile(app, player, { x: 0, y: 4 });
+      await resolveConflict(app, "player", companies, 400);
 
-      let status = await getGameStatus(app, player);
-      assert.strictEqual(status.state, "merge-conflict");
-
-      await resolveConflict(app, player, {
-        acquirer: "phoenix",
-        defunct: "quantum",
-      });
-
-      await endMerge(app, player);
-      status = await getGameStatus(app, player);
-      chai.expect(status.state).to.not.equal("merge");
+      assert.equal(conflictResolverStub.callCount, 0);
     });
   });
 
   describe("POST /game/end-result", () => {
     it("should give the game result", async () => {
-      const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const player = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
+      const { app, gameManager } = createTestApp();
+      const game = { result: { ended: true } };
+      sinon.stub(gameManager, "findById").returns(game);
 
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+      const result = await gameResult(app, "player");
 
-      await joinPlayer(app, player);
-      await startGame(app, player);
-      await loadGame(app, player, gameEndData);
-      await placeTile(app, player, { "x": 6, "y": 6 });
-      await endMergerTurn(app, player);
-      await endTurn(app, player);
-
-      let status = await getGameStatus(app, player);
-      assert.strictEqual(status.state, "game-end");
-
-      const { players } = await gameResult(app, player);
-      assert.deepStrictEqual(players, [
-        {
-          balance: 4800,
-          name: "player",
-          stocks: {
-            america: 0,
-            fusion: 0,
-            hydra: 0,
-            phoenix: 3,
-            quantum: 0,
-            sackson: 0,
-            zeta: 0,
-          },
-        },
-      ]);
+      assert.deepStrictEqual(result, game.result);
     });
   });
 
   describe("POST /game/merger/deal", () => {
-    it("should sell defunct stocks", async () => {
-      const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const playerName = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
+    it("should deal defunct stocks", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player",
+        dealDefunctStocks: sinon.fake,
+      };
+      const dealStub = sinon.stub(game, "dealDefunctStocks").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      const deal = { sell: 5, trade: 2 };
+      await dealDefunctStocks(app, "player", deal);
 
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-      await joinPlayer(app, playerName);
-      await startGame(app, playerName);
-      await loadGame(app, playerName, mergerRound);
-      await placeTile(app, playerName, { "x": 6, "y": 6 });
-
-      let status = await getGameStatus(app, playerName);
-      assert.strictEqual(status.state, "merge");
-
-      await dealDefunctStocks(app, playerName, { sell: 5, trade: 0 });
-
-      const {
-        portfolio: { stocks, balance },
-        corporations: { zeta },
-      } = await getGameStatus(app, playerName);
-
-      assert.deepStrictEqual(stocks.zeta, 0);
-      assert.deepStrictEqual(balance, 16800);
-      assert.deepStrictEqual(zeta.stocks, 25);
+      assert(dealStub.calledWith(deal));
     });
 
-    it("should trade defunct stocks for 2:1", async () => {
-      const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const playerName = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
+    it("should allow only current playe to deal defunct stocks", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player2",
+        dealDefunctStocks: sinon.fake,
+      };
+      const dealStub = sinon.stub(game, "dealDefunctStocks").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      await dealDefunctStocks(app, "player", { sell: 5, trade: 2 }, 400);
 
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-      await joinPlayer(app, playerName);
-      await startGame(app, playerName);
-      await loadGame(app, playerName, mergerRound);
-      await placeTile(app, playerName, { "x": 6, "y": 6 });
-
-      let status = await getGameStatus(app, playerName);
-      assert.strictEqual(status.state, "merge");
-
-      await dealDefunctStocks(app, playerName, { sell: 0, trade: 4 });
-
-      const {
-        portfolio: { stocks, balance },
-        corporations: { zeta },
-      } = await getGameStatus(app, playerName);
-
-      assert.deepStrictEqual(stocks.zeta, 1);
-      assert.deepStrictEqual(stocks.quantum, 2);
-      assert.deepStrictEqual(balance, 13800);
-      assert.deepStrictEqual(zeta.stocks, 24);
-    });
-
-    it("should not trade when stocks of acquirer are not available", async () => {
-      const size = { lowerLimit: 1, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const playerName = "player";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-      await joinPlayer(app, playerName);
-      await startGame(app, playerName);
-      await loadGame(app, playerName, mergerRound);
-      await placeTile(app, playerName, { "x": 6, "y": 6 });
-
-      let status = await getGameStatus(app, playerName);
-      assert.strictEqual(status.state, "merge");
-
-      await dealDefunctStocks(app, playerName, { sell: 0, trade: 6 });
-
-      const {
-        portfolio: { stocks, balance },
-        corporations: { zeta },
-      } = await getGameStatus(app, playerName);
-
-      assert.deepStrictEqual(stocks.zeta, 5);
-      assert.deepStrictEqual(stocks.quantum, 0);
-      assert.deepStrictEqual(balance, 13800);
-      assert.deepStrictEqual(zeta.stocks, 20);
-    });
-  });
-
-  describe("POST /game/buy-stocks", () => {
-    it("should buy stocks of an active corporation", async () => {
-      const size = { lowerLimit: 2, upperLimit: 2 };
-      const lobby = new Lobby("0", size);
-      const username1 = "player1";
-      const username2 = "player2";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
-
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
-
-      await joinPlayer(app, username1);
-      await joinPlayer(app, username2);
-      await startGame(app, username1);
-      await placeTile(app, username1, { x: 0, y: 0 });
-      await endTurn(app, username1);
-      await badRequest(app, username1, "/game/0/end-turn");
+      assert.equal(dealStub.callCount, 0);
     });
   });
 
   describe("POST /game/merge/resolve-acquirer", () => {
     it("should select acquirer from multiple acquirer", async () => {
-      const size = { lowerLimit: 3, upperLimit: 6 };
-      const lobby = new Lobby("0", size);
-      const player1 = "Bittu";
-      const player2 = "Debu";
-      const player3 = "Swagato";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player",
+        selectAcquirer: sinon.fake,
+      }
+      const selectAcquirerStub = sinon.stub(game, "selectAcquirer").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      const acquirer = { name: "zeta" };
 
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+      await request(app)
+        .post("/game/0/merger/resolve-acquirer")
+        .set("cookie", `username=player`)
+        .send({ acquirer })
+        .expect(200);
 
-      await joinPlayer(app, player1);
-      await joinPlayer(app, player2);
-      await joinPlayer(app, player3);
-      await loadGame(app, player1, multipleMergeTwoAcquirer);
+      assert(selectAcquirerStub.calledWith(acquirer));
+    });
 
-      await placeTile(app, player1, { x: 4, y: 6 });
+    it("should allow select acquirer for current user", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player2",
+        selectAcquirer: sinon.fake,
+      }
+      const selectAcquirerStub = sinon.stub(game, "selectAcquirer").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      const acquirer = { name: "zeta" };
 
-      const { state } = await getGameStatus(app, player1);
-      assert.strictEqual(state, "acquirer-selection");
+      await request(app)
+        .post("/game/0/merger/resolve-acquirer")
+        .set("cookie", `username=player`)
+        .send({ acquirer })
+        .expect(400);
 
-      await selectAcquirer(app, player1, "phoenix");
-      const { state: mergeState } = await getGameStatus(app, player1);
-      assert.strictEqual(mergeState, "merge");
+      assert.equal(selectAcquirerStub.callCount, 0);
     });
   });
 
   describe("POST /game/merge/confirm-defunct", () => {
     it("should select defunct from defunct acquirer", async () => {
-      const size = { lowerLimit: 3, upperLimit: 6 };
-      const lobby = new Lobby("0", size);
-      const player1 = "Bittu";
-      const player2 = "Debu";
-      const player3 = "Swagato";
-      const lobbyRouter = createLobbyRouter();
-      const gameRouter = createGameRouter();
-      const shuffle = x => x;
-      const lobbyManager = new LobbyManager({ 0: lobby });
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player",
+        confirmDefunct: sinon.fake,
+      }
+      const confirmDefunctStub = sinon.stub(game, "confirmDefunct").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      const defunct = { stock: 1 };
 
-      const gameManager = new GameManager({}, shuffle);
-      const app = createApp(lobbyRouter, gameRouter, { lobbyManager, shuffle, gameManager });
+      await request(app)
+        .post("/game/0/merger/confirm-defunct")
+        .set("cookie", `username=player`)
+        .send({ defunct })
+        .expect(200);
 
-      await joinPlayer(app, player1);
-      await joinPlayer(app, player2);
-      await joinPlayer(app, player3);
-      await loadGame(app, player1, multipleMergeThreeAllEqual);
+      assert(confirmDefunctStub.calledWith(defunct));
+    });
 
-      await placeTile(app, player1, { x: 4, y: 6 });
+    it("should allow select defunct for current player only", async () => {
+      const { app, gameManager } = createTestApp();
+      const game = {
+        currentPlayerName: () => "player2",
+        confirmDefunct: sinon.fake,
+      }
+      const confirmDefunctStub = sinon.stub(game, "confirmDefunct").returns({});
+      sinon.stub(gameManager, "findById").returns(game);
+      const defunct = { stock: 1 };
 
-      const { state: acquirerSelection } = await getGameStatus(app, player1);
-      assert.strictEqual(acquirerSelection, "acquirer-selection");
-      await selectAcquirer(app, player1, "phoenix");
+      await request(app)
+        .post("/game/0/merger/confirm-defunct")
+        .set("cookie", `username=player`)
+        .send({ defunct })
+        .expect(400);
 
-      const { state: defunctSelection } = await getGameStatus(app, player1);
-      assert.strictEqual(defunctSelection, "defunct-selection");
-      await selectDefunct(app, player1, "quantum");
-
-      const { state: mergeState } = await getGameStatus(app, player1);
-      assert.strictEqual(mergeState, "merge");
+      assert.equal(confirmDefunctStub.callCount, 0);
     });
   });
 });

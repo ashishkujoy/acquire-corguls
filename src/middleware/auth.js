@@ -1,6 +1,6 @@
 const authorize = (req, res, next) => {
-  if (!req.cookies.username) {
-    res.redirect("/");
+  if (!req.isAuthenticated()) {
+    res.redirect("/login");
     return;
   }
 

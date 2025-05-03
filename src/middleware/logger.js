@@ -1,5 +1,5 @@
 const logRequest = (req, _res, next) => {
-  console.log(">", req.method, req.url);
+  console.log("Requet is >", req.method, req.url);
   next();
 };
 

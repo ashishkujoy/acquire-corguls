@@ -2,7 +2,7 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const { logRequest } = require("./middleware/logger");
 const { authorize } = require("./middleware/auth");
-const { loginUser } = require("./routers/auth-router");
+const { createAuthRouter } = require("./routers/auth-router");
 const { setupLobbyWebsocketEvents } = require("./routers/lobby-router");
 const { setupGameEventRoutes } = require("./routers/game-router");
 
@@ -22,16 +22,11 @@ const createApp = (lobbyRouter, gameRouter, context, preapp) => {
   app.use(logRequest);
   app.use(express.json());
   app.use(cookieParser());
-  app.use("/whoami", (req, res) => {
-    const { username } = req.cookies;
-    if (username) {
-      res.json({ username });
-    } else {
-      res.status(401).json({ error: "Unauthorized" });
-    }
-  });
+  if (process.env.PROD) {
+    app.use(createAuthRouter());
+  }
   app.get("/", serveHomePage);
-  app.post("/login", loginUser)
+
   app.get("/joinorhost", authorize, serveJoinOrHostPage);
   app.use("/lobby", lobbyRouter);
   app.use("/game", gameRouter);
@@ -50,7 +45,9 @@ const socketSessionMiddleware = (socket, next) => {
     if (err) {
       return next(err);
     }
-    socket.username = req.cookies.username;
+    if (req.user) {
+      socket.username = req.user.username;
+    }
     next();
   });
 };

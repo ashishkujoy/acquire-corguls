@@ -3,7 +3,7 @@ const { authorizeLobbyMember } = require("../middleware/lobby");
 
 const serveGameStats = (req, res) => {
   const { game } = req.app.context;
-  const { username } = req.cookies;
+  const { username } = req.user;
   res.send(game.status(username));
 };
 
@@ -21,7 +21,7 @@ const updateClients = (game, io) => {
 
 const placeTile = (req, res) => {
   const { game } = req.app.context;
-  const { username } = req.cookies;
+  const { username } = req.user;
   const tile = req.body;
 
   game.placeTile(username, tile);
@@ -86,7 +86,7 @@ const getLobby = (req) => {
 
 const startGame = (req, res) => {
   const lobby = getLobby(req);
-  const { username } = req.cookies;
+  const { username } = req.user;
   const game = req.app.context.gameManager.createGame(lobby);
   req.app.context.game = game;
   game.start();
@@ -100,7 +100,7 @@ const startGame = (req, res) => {
 };
 
 const verifyHost = (req, res, next) => {
-  const { username } = req.cookies;
+  const { username } = req.user;
   const lobby = getLobby(req);
   const { self, host } = lobby.status(username);
 
@@ -160,7 +160,7 @@ const resolveConflict = (req, res) => {
 
 const validatePlayer = (req, res, next) => {
   const { game } = req.app.context;
-  const { username } = req.cookies;
+  const { username } = req.user;
   const currentPlayerName = game.currentPlayerName();
   if (username === currentPlayerName) return next();
   res.status(400).end();

@@ -20,7 +20,7 @@ const doNotJoinIfLobbyIsFull = (req, res, next) => {
 
 const joinPlayer = (req, res) => {
   const { lobby } = req.app.context;
-  const { username } = req.cookies;
+  const { username } = req.user;
   const { id } = req.params;
 
   lobby.addPlayer({ username });
@@ -30,7 +30,7 @@ const joinPlayer = (req, res) => {
 
 const sendLobbyStatus = (req, res) => {
   const { lobby } = req.app.context;
-  const { username } = req.cookies;
+  const { username } = req.user;
 
   res.json(lobby.status(username));
 };
@@ -43,7 +43,7 @@ const serveAvailableLobbies = (req, res) => {
 const createNewLobby = (req, res) => {
   const { name } = req.body;
   const size = { lowerLimit: 2, upperLimit: 6 };
-  const { username } = req.cookies;
+  const { username } = req.user;
   const id = req.app.context.lobbyManager.createLobbyWithHost(size, name, username);
 
   res.json({ id, name });
