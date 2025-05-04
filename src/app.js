@@ -6,8 +6,9 @@ const { createAuthRouter } = require("./routers/auth-router");
 const { setupLobbyWebsocketEvents } = require("./routers/lobby-router");
 const { setupGameEventRoutes } = require("./routers/game-router");
 
-const serveHomePage = (_, res) => {
-  res.sendFile("index.html", { root: "pages" });
+const serveHomePage = (req, res) => {
+  const location = req.isAuthenticated() ? "/joinorhost" : "/login"
+  res.redirect(location);
 };
 
 const serveJoinOrHostPage = (_, res) => {
