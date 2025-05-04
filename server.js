@@ -8,6 +8,7 @@ const GameManager = require("./src/models/game-manager");
 const server = require("http");
 const { Server } = require("socket.io");
 const express = require("express");
+require('dotenv').config();
 
 const PORT = process.env.PORT || 8080;
 
