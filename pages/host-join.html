@@ -1,40 +1,46 @@
 <html>
-  <head>
-    <title>Acquire - Lobby</title>
-    <link rel="stylesheet" href="/styles/style.css" />
-    <link rel="stylesheet" href="/styles/page-layout.css" />
-    <link rel="stylesheet" href="/styles/lobby.css" />
-    <script src="/scripts/join-host.js"></script>
-  </head>
-  <body>
-    <div id="root">
-      <header id="page-header">
-        <h1 id="heading">ACQUIRE</h1>
-      </header>
-      <main id="page">
-        <section id="host-join">
-          <section id="host-section">
-            <header>
-              <h3>Host New Game</h3>
-            </header>
-            <form id="create-room-form" method="post">
-                <input type="text" name="name" id="lobby-name" required />
-              <button type="submit">Create</button>
-            </form>
-          </section>
-          <section id="join-section">
-            <header>
-              <h3>Available Lobbies</h3>
-            </header>
-            <template id="room">
-              <div class="room">
-                <h3 class="room-name"></h3>
-                <button class="join-room-btn">Join</button>
-              </div>
-            </template>
-          </section>
+
+<head>
+  <title>Acquire - Lobby</title>
+  <link rel="stylesheet" href="/styles/style.css" />
+  <link rel="stylesheet" href="/styles/page-layout.css" />
+  <link rel="stylesheet" href="/styles/lobby.css" />
+  <link rel="stylesheet" href="/styles/login.css">
+  <link rel="stylesheet" href="/styles/host-join.css">
+  <script src="/scripts/join-host.js"></script>
+
+</head>
+
+<body>
+  <header>
+    <div class="logo">ACQUIRE</div>
+  </header>
+  <div class="container">
+    <main class="card max-width-600">
+      <section id="host-join">
+        <section id="host-section">
+          <header class="full-width">
+            <h3>Host New Game</h3>
+          </header>
+          <form id="create-room-form" method="post" class="flex gap padding-top-bottom-1 full-width">
+            <input type="text" name="name" id="lobby-name" placeholder="Lobby Name" required />
+            <button type="submit" class="primary-btn">Create</button>
+          </form>
         </section>
-      </main>
-    </div>
-  </body>
+        <section id="join-section">
+          <header>
+            <h3>Available Lobbies</h3>
+          </header>
+          <template id="room">
+            <div class="room flex gap padding-top-bottom-1 full-width justify-space-between">
+              <h3 class="room-name"></h3>
+              <button class="join-room-btn primary-btn">Join</button>
+            </div>
+          </template>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+
 </html>

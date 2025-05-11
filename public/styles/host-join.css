@@ -1,0 +1,16 @@
+.flex {
+  display: flex;
+}
+
+.gap {
+  gap: 1rem;
+}
+
+.padding-top-bottom-1 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.full-width {
+  width: 100%;
+}
