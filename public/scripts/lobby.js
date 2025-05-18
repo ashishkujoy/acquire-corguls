@@ -27,7 +27,7 @@ const redirectToGame = (gameId) => {
 
 const isHost = (host, self) => self.username === host.username;
 
-const renderStartBtn = ({ host, self, isPossibleToStartGame }) => {
+const renderStartBtn = ({ host, isPossibleToStartGame }, self) => {
   const startButton = getStartBtn();
   if (isHost(host, self)) {
     startButton.classList.remove("hide");
@@ -83,20 +83,23 @@ const setUpStartButton = () => {
   };
 };
 
-const keepLobbyUpdatedOnEvent = () => {
+const keepLobbyUpdatedOnEvent = (user) => {
   const socket = io();
   const lobbyId = window.location.pathname.split("/").pop();
   socket.emit("joinlobby", { lobbyId });
   socket.on("lobbyupdate", (status) => {
+    console.log("Got lobby update", status);
     renderPlayers(status.players);
-    renderStartBtn(status);
+    renderStartBtn(status, user);
     if (gameHasStarted(status)) redirectToGame(status.id);
   });
 }
 
-const main = () => {
+const main = async () => {
+  const res = await fetch("/user");
+  const user = await res.json();
   animate();
-  keepLobbyUpdatedOnEvent();
+  keepLobbyUpdatedOnEvent(user);
   setUpStartButton();
 };
 

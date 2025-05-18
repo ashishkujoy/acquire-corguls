@@ -1,7 +1,6 @@
 const express = require("express");
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oidc');
-const session = require('express-session');
 const GitHubStrategy = require('passport-github2').Strategy;
 
 
@@ -24,11 +23,8 @@ const serveLoginPage = (_, res) => {
 
 const createAuthRouter = () => {
   const app = express();
-  app.use(session({
-    secret: process.env['SESSION_KEY'] || 'keyboard cat',
-    resave: false,
-    saveUninitialized: false,
-  }));
+  app.use(passport.initialize());
+  app.use(passport.session());
   passport.serializeUser(function (user, cb) {
     process.nextTick(function () {
       cb(null, {
@@ -43,6 +39,7 @@ const createAuthRouter = () => {
       return cb(null, user);
     });
   });
+
   passport.use(new GoogleStrategy({
     clientID: process.env['GOOGLE_CLIENT_ID'],
     clientSecret: process.env['GOOGLE_CLIENT_SECRET'],

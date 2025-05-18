@@ -61,7 +61,10 @@ const setupLobbyWebsocketEvents = (context, socket) => {
   if (!context.io) {
     return;
   }
-  socket.on("joinlobby", (data) => joinLobbyEvenHandler(context, socket, data));
+  socket.on("joinlobby", (data) => {
+    console.log("Got a join lobby request", data);
+    return joinLobbyEvenHandler(context, socket, data)
+  });
 }
 
 const extractLobby = (req, res, next) => {
