@@ -17,17 +17,18 @@ const serveJoinOrHostPage = (_, res) => {
   res.sendFile("host-join.html", { root: "pages" });
 }
 
-const sessionMiddleware = session({
+const sessionMiddleware = (store) => session({
   secret: process.env['SESSION_KEY'] || 'keyboard cat',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
+  store,
 });
 
 const createApp = (lobbyRouter, gameRouter, context, preapp) => {
   const app = preapp || express();
-
+  const middleware = sessionMiddleware(context.redisStore)
   app.context = context;
-  app.use(sessionMiddleware);
+  app.use(middleware);
   app.use(logRequest);
   app.use(express.json());
   app.use(cookieParser());
@@ -45,31 +46,27 @@ const createApp = (lobbyRouter, gameRouter, context, preapp) => {
 
   app.use(express.static("public"));
 
-  setupEventRoutes(context);
+  setupEventRoutes(context, middleware);
 
   return app;
 };
-const cookiePar = cookieParser();
 
-const socketSessionMiddleware = (socket, next) => {
+
+const socketSessionMiddleware = (middleware) => (socket, next) => {
   const req = socket.request;
   const res = {};
-  sessionMiddleware(req, res, async () => {
+
+  middleware(req, res, async () => {
     if (!req.session || !req.session.passport || !req.session.passport.user) {
       return next(new Error("Unauthorized"));
     }
 
     try {
       passport.deserializeUser(req.session.passport.user, (err, user) => {
-        if (err) {
-          console.log("Got error in deserialize user");
-          return next(err);
-        }
+        if (err) return next(err);
         if (!user) {
-          console.log("User not found in session");
           return next(new Error("User not found"));
         }
-        console.log("Found user in session", user);
         req.user = user;
         socket.user = user;
         socket.username = user.username;
@@ -81,14 +78,14 @@ const socketSessionMiddleware = (socket, next) => {
   });
 };
 
-const setupEventRoutes = (context) => {
+const setupEventRoutes = (context, middleware) => {
   const { io } = context;
   // quick hack to keep existing test passing.
   // TODO: remove this when we know testing socket.io works
   if (!io) {
     return;
   }
-  io.use(socketSessionMiddleware);
+  io.use(socketSessionMiddleware(middleware));
 
   io.on("connection", (socket) => {
     setupLobbyWebsocketEvents(context, socket);

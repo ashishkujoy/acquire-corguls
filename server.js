@@ -9,6 +9,8 @@ const server = require("http");
 const { Server } = require("socket.io");
 const express = require("express");
 require('dotenv').config();
+const { RedisStore } = require("connect-redis");
+const { createClient } = require("redis");
 
 const PORT = process.env.PORT || 8080;
 
@@ -23,7 +25,28 @@ const setUpLobbyManager = () => {
   return new LobbyManager({ 0: new Lobby("0", size, "First Lobby") }, { generate: () => ++id });
 };
 
-const main = () => {
+const createRedisStore = async () => {
+  const redisClient = createClient({
+    password: process.env.REDIS_PASSWORD,
+    username: process.env.REDIS_USERNAME,
+    pingInterval: 100,
+    socket: {
+      host: process.env.REDIS_HOST,
+      port: process.env.REDIS_PORT,
+    },
+  });
+  await redisClient.connect();
+
+  const redisStore = new RedisStore({
+    client: redisClient,
+    prefix: process.env.DBNAME,
+    ttl: 365 * 24 * 60 * 60,
+  });
+
+  return redisStore;
+};
+
+const main = async () => {
   const lobbyManager = setUpLobbyManager();
   const lobbyRouter = createLobbyRouter();
   const gameRouter = createGameRouter();
@@ -41,6 +64,7 @@ const main = () => {
     gameManager,
     shuffle,
     io,
+    redisStore: await createRedisStore(),
   };
   createApp(lobbyRouter, gameRouter, context, app);
   serverInstance.listen(PORT, logServerInfo);
