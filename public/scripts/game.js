@@ -262,16 +262,21 @@ const animateTile = (position, transitionType, duration = 1000) => {
   const tile = board[tileId];
 
   tile.classList.add(transitionType);
-  setTimeout(() => tile.classList.remove(transitionType), duration);
+  return new Promise((res) => {
+    setTimeout(() => {
+      tile.classList.remove(transitionType);
+      res();
+    }, duration);
+  });
 };
 
-const renderBoard = ({ placedTiles, state }) => {
-  placedTiles.forEach(({ position, belongsTo }) =>
-    fillSpace(position, belongsTo)
-  );
-
+const renderBoard = ({ placedTiles }) => {
   const newTilePlaced = placedTiles.at(-1);
-  animateTile(newTilePlaced.position, "new-tile");
+
+  animateTile(newTilePlaced.position, "new-tile")
+    .then(() => {
+      placedTiles.forEach(({ position, belongsTo }) => fillSpace(position, belongsTo));
+    });
 };
 
 const isSamePlayer = (self, currentPlayer) =>

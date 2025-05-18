@@ -56,7 +56,6 @@ const socketSessionMiddleware = (socket, next) => {
   const res = {};
   sessionMiddleware(req, res, async () => {
     if (!req.session || !req.session.passport || !req.session.passport.user) {
-      console.log("No session, no passport in session or no user in session passport");
       return next(new Error("Unauthorized"));
     }
 
@@ -73,6 +72,7 @@ const socketSessionMiddleware = (socket, next) => {
         console.log("Found user in session", user);
         req.user = user;
         socket.user = user;
+        socket.username = user.username;
         next();
       });
     } catch (err) {
