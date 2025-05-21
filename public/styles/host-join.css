@@ -14,3 +14,9 @@
 .full-width {
   width: 100%;
 }
+
+.click-disabled {
+  pointer-events: none;
+  cursor: none;
+  opacity: 0.5;
+}

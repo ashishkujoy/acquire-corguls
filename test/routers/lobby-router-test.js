@@ -99,6 +99,16 @@ describe("POST /lobby/:id/players", () => {
       .expect(401)
       .expect({ error: "Lobby is full !" });
   });
+
+  it("should handle error in joining lobby", async () => {
+    const { app, lobby } = createTestApp();
+    sinon.stub(lobby, "addPlayer").throws(new Error("Player already in lobby"));
+
+    await request(app)
+      .post("/lobby/0/players")
+      .expect(400)
+      .expect({ error: "Player already in lobby" });
+  });
 });
 
 describe("GET /lobby/:id/status", () => {

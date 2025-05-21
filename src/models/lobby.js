@@ -14,6 +14,9 @@ class Lobby {
   }
 
   addPlayer(player) {
+    if (this.#players.find(p => p.username === player.username)) {
+      throw new Error("Player already in lobby");
+    }
     this.#players.push(player);
   }
 

@@ -22,8 +22,12 @@ const joinPlayer = (req, res) => {
   const { lobby } = req.app.context;
   const { username } = req.user;
   const { id } = req.params;
-
-  lobby.addPlayer({ username });
+  try {
+    lobby.addPlayer({ username });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+    return;
+  }
 
   res.cookie("username", username).redirect(`/lobby/${id}`);
 };

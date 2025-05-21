@@ -17,13 +17,17 @@ const renderLobby = (lobby) => {
   const lobbyName = lobbyTemplate.querySelector(".room-name");
   lobbyName.textContent = lobby.name;
   const joinLobbyBtn = lobbyTemplate.querySelector(".join-room-btn");
-  joinLobbyBtn.onclick = joinLobby.bind(null, lobby.id);
+  joinLobbyBtn.onclick = () => {
+    joinLobbyBtn.disabled = true;
+    joinLobbyBtn.classList.add("click-disabled");
+    joinLobby(lobby.id);
+  }
 
   lobbies.appendChild(lobbyTemplate);
 }
 
 const renderLobbies = (lobbies) => {
-  console.log("Rendering lobbies", lobbies)
+
   lobbies.forEach(lobby => renderLobby(lobby));
 }
 
@@ -32,7 +36,7 @@ const showExistingRooms = async () => {
 
   const res = await fetch("/lobby/available");
   const lobbies = await res.json();
-  console.log(lobbies)
+
   renderLobbies(lobbies);
 }
 
