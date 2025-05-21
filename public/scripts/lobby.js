@@ -41,15 +41,11 @@ const gameHasStarted = ({ isPossibleToStartGame, hasExpired }) => {
   return isPossibleToStartGame && hasExpired;
 };
 
-const updateLobby = () => {
-  const lobbyId = window.location.pathname.split("/").pop();
-
-  getLobbyStatus(lobbyId).then(status => {
-    renderPlayers(status.players);
-    renderStartBtn(status);
-    console.log(status);
-    if (gameHasStarted(status)) redirectToGame(status.id);
-  });
+const updateLobbyPeriodically = (user) => {
+  setInterval(() => {
+    const lobbyId = window.location.pathname.split("/").pop();
+    getLobbyStatus(lobbyId).then(status => updateLobby(status, user));
+  }, 5000);
 };
 
 const keepLobbyUpdated = () => {
@@ -83,15 +79,19 @@ const setUpStartButton = () => {
   };
 };
 
+const updateLobby = (status, user) => {
+  renderPlayers(status.players);
+  renderStartBtn(status, user);
+  if (gameHasStarted(status)) redirectToGame(status.id);
+}
+
+
 const keepLobbyUpdatedOnEvent = (user) => {
   const socket = io();
   const lobbyId = window.location.pathname.split("/").pop();
   socket.emit("joinlobby", { lobbyId });
   socket.on("lobbyupdate", (status) => {
-    console.log("Got lobby update", status);
-    renderPlayers(status.players);
-    renderStartBtn(status, user);
-    if (gameHasStarted(status)) redirectToGame(status.id);
+    updateLobby(status, user);
   });
 }
 
@@ -100,7 +100,9 @@ const main = async () => {
   const user = await res.json();
   animate();
   keepLobbyUpdatedOnEvent(user);
+  updateLobbyPeriodically(user);
   setUpStartButton();
 };
 
 window.onload = main;
+
