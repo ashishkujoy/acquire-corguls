@@ -124,13 +124,17 @@ const establishCorporation = (data) => {
   });
 };
 
+const roundToTwoDecimalPlaces = (value) => {
+  return Math.round(value * 100) / 100;
+}
+
 const renderCorporations = ({ corporations }) => {
   Object.entries(corporations).forEach(([name, stats]) => {
     const corporation = getCorporation(name);
 
     if (stats.isSafe) corporation.classList.add("safe");
 
-    corporation.querySelector(".price").innerText = `$${stats.price}`;
+    corporation.querySelector(".price").innerText = `$${roundToTwoDecimalPlaces(stats.price)}`;
     corporation.querySelector(".size").innerText = stats.size;
     corporation.querySelector(".stocks").innerText = stats.stocks;
   });
@@ -418,7 +422,7 @@ const createBonusTable = ({ majority, minority }) => {
         "div",
         [
           ["h5", "Majority"],
-          ["h5", `$${majority.bonus}`],
+          ["h5", `$${roundToTwoDecimalPlaces(majority.bonus)}`],
           ...majority.players.map(name => ["p", name]),
         ],
       ],
@@ -426,7 +430,7 @@ const createBonusTable = ({ majority, minority }) => {
         "div",
         [
           ["h5", "Minority"],
-          ["h5", `$${minority.bonus}`],
+          ["h5", `$${roundToTwoDecimalPlaces(minority.bonus)}`],
           ...minority.players.map(name => ["p", name]),
         ],
       ],
