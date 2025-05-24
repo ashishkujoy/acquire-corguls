@@ -234,6 +234,15 @@ const createGameRouter = () => {
   router.post("/:id/buy-stocks", validatePlayer, buyStocks);
   router.post("/:id/establish", validatePlayer, establishCorporation);
   router.post("/:id/end-merge", endMerge);
+  router.post("/:id/update-balance", validatePlayer, (req, res) => {
+    const { game } = req.app.context;
+    const { username, balance } = req.body;
+    game.updateBalance(username, balance);
+    res.status(200).end();
+    if (req.app.context.io) {
+      updateClients(game, req.app.context.io);
+    }
+  });
 
   return router;
 };

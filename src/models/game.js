@@ -581,6 +581,14 @@ class Game {
     this.endMergerTurn();
   }
 
+  updateBalance(username, amount) {
+    const player = this.#players.find(p => p.username === username);
+    if (!player) {
+      throw new Error("Player not found");
+    }
+    player.addIncome(amount);
+  }
+
   buyStocks(stocks) {
     const player = this.#currentPlayer();
 
