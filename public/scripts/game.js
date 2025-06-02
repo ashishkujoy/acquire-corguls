@@ -330,7 +330,7 @@ const removeAllHighlights = () => {
   });
 };
 
-const setUpHoverEventForTiles = tiles => {
+const setUpHoverEventForTiles = (tiles, isMyTurn = true) => {
   const tileContainer = getTileContainer();
 
   // Store current tiles globally so hover always works
@@ -352,8 +352,14 @@ const setUpHoverEventForTiles = tiles => {
     const tileElement = tileElements[index];
     if (!tileElement || !tile) return;
 
-    // Force pointer events on individual tiles to override disable-click
-    tileElement.style.pointerEvents = "auto";
+    // Always allow hover events, but conditionally allow clicks
+    if (isMyTurn) {
+      tileElement.style.pointerEvents = "auto";
+    } else {
+      // Allow hover but prevent clicks by using a custom approach
+      tileElement.style.pointerEvents = "auto";
+      tileElement.style.cursor = "default";
+    }
 
     tileElement.onmouseenter = () => {
       highlightAllTiles(tile);
@@ -369,9 +375,15 @@ const setUpHoverEventForTiles = tiles => {
 
 const displayAndSetupAccountTiles = gameStatus => {
   const { tiles } = gameStatus.portfolio;
+  const { players } = gameStatus;
   const tileElements = getTileElements();
 
-  setUpHoverEventForTiles(tiles.filter(tile => tile));
+  // Check if it's the current player's turn
+  const self = players.find(({ you }) => you);
+  const currentPlayer = players.find(({ isTakingTurn }) => isTakingTurn);
+  const isMyTurn = self && currentPlayer && self.username === currentPlayer.username;
+
+  setUpHoverEventForTiles(tiles.filter(tile => tile), isMyTurn);
 
   tiles.forEach((tile, tileID) => {
     const tileElement = tileElements[tileID];
@@ -384,7 +396,17 @@ const displayAndSetupAccountTiles = gameStatus => {
 
     displayTile(tileElement, tile.position);
     addVisualAttribute(tileElement, tile);
-    attachListener(tileElement, tile);
+
+    // Only attach click listener if it's the player's turn
+    if (isMyTurn) {
+      attachListener(tileElement, tile);
+      tileElement.style.cursor = "pointer";
+    } else {
+      // Remove any existing click listener and disable clicking
+      tileElement.onclick = null;
+      tileElement.style.cursor = "default";
+    }
+
     if (tile.exchange === "yes") {
       tileElement.onclick = () => { };
       tileElement.classList.add("unplayable-tile");
