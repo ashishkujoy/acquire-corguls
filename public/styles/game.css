@@ -86,6 +86,41 @@
   letter-spacing: 2px;
   letter-spacing: 3px;
   color: var(--light-gray);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1em;
+}
+
+.toggle-details-btn {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0.2em;
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-details-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-details-btn.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Hide financial details when toggled */
+.hide-details .amount {
+  visibility: hidden;
+}
+
+.hide-details .amount::before {
+  visibility: hidden;
+}
+
+.hide-details .quantity {
+  visibility: hidden;
 }
 
 .balance {

@@ -112,6 +112,31 @@ const setupHistory = () => {
   };
 };
 
+const setupToggleDetails = () => {
+  const toggleButton = document.querySelector("#toggle-details-btn");
+  const portfolioSection = document.querySelector("#portfolio-section");
+
+  if (toggleButton && portfolioSection) {
+    let isHidden = false;
+
+    toggleButton.onclick = () => {
+      isHidden = !isHidden;
+
+      if (isHidden) {
+        portfolioSection.classList.add("hide-details");
+        toggleButton.classList.add("active");
+        toggleButton.textContent = "🙈"; // Hidden state
+        toggleButton.title = "Show Details";
+      } else {
+        portfolioSection.classList.remove("hide-details");
+        toggleButton.classList.remove("active");
+        toggleButton.textContent = "👁️"; // Visible state
+        toggleButton.title = "Hide Details";
+      }
+    };
+  }
+};
+
 const getBalanceContainer = () => document.querySelector("#balance-container");
 
 const getCorporations = () => document.querySelector("#corporations");
@@ -817,6 +842,7 @@ const createComponents = gameStatus => {
 
 const setupGame = () => {
   setupInfoCard();
+  setupToggleDetails();
   const gameId = window.location.pathname.split("/").pop();
   const gameGateway = new GameGateway(`/game/${gameId}`);
 
@@ -853,6 +879,7 @@ const keepPlayerProfileUpdated = async () => {
   setupGame().then(keepGameUpdatedOnEvent);
 
   setupHistory();
+  setupToggleDetails();
 };
 
 window.onload = keepPlayerProfileUpdated;
