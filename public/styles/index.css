@@ -2,19 +2,91 @@
   display: grid;
   justify-content: center;
   align-items: start;
+  padding: 2rem;
+}
+
+.card {
+  background-color: var(--light-gray);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.max-width-600 {
+  max-width: 600px;
+  width: 100%;
 }
 
 #join-form {
   font-size: 1.2em;
-  display: grid;
-  place-content: center;
+  flex-direction: column;
   text-align: center;
-  gap: 0.8em;
-  padding: 1em;
-  background-color: var(--light-gray);
-  border-radius: 5px;
+}
+
+#join-form label {
+  font-weight: bold;
+  color: var(--dark-gray);
+  margin-bottom: 0.5rem;
+}
+
+.form-section {
+  align-items: center;
+  justify-content: center;
+}
+
+.form-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--gray);
+  border-radius: var(--border-radius);
+  font-size: inherit;
+  transition: border-color 0.3s ease-in-out;
+  background-color: white;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--dark-gray);
+  box-shadow: 0 0 0 3px rgba(30, 30, 30, 0.1);
+}
+
+.primary-btn {
+  cursor: pointer;
+  border: none;
+  min-width: 100px;
+}
+
+.primary-btn:hover {
+  background: linear-gradient(to right, #3d2a6b, #5c3ba4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Utility classes to match host-join.html */
+.flex {
+  display: flex;
+}
+
+.gap {
+  gap: 1rem;
+}
+
+.padding-top-bottom-1 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.full-width {
+  width: 100%;
 }
 
 #message.error {
   color: rgb(142, 66, 66);
+  font-weight: bold;
+  margin-top: 0.5rem;
 }

@@ -58,8 +58,33 @@ const setupCreateNewRoom = () => {
   }
 }
 
+const setupLogout = () => {
+  const logoutBtn = document.querySelector("#logout-btn");
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      try {
+        // Clear any authentication cookies/data
+        document.cookie = "username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+        // Try to call logout endpoint if it exists
+        await fetch("/logout", { method: "POST" }).catch(() => {
+          // Ignore errors - logout endpoint might not exist for simple auth
+        });
+
+        // Redirect to login/home page
+        window.location.href = "/";
+      } catch (err) {
+        console.error("Logout error:", err);
+        // Still redirect even if logout fails
+        window.location.href = "/";
+      }
+    };
+  }
+}
+
 const setup = () => {
   setupCreateNewRoom();
+  setupLogout();
   showExistingRooms()
 }
 
