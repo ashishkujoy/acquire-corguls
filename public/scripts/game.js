@@ -137,40 +137,63 @@ const extractCorporationsFromPreviousTurn = (gameStatus) => {
 
   const corporationActivities = new Map();
 
+  const addActivity = (corpName, activity) => {
+    if (!corporationActivities.has(corpName)) {
+      corporationActivities.set(corpName, new Map());
+    }
+    const corpActivities = corporationActivities.get(corpName);
+    const count = corpActivities.get(activity) || 0;
+    corpActivities.set(activity, count + 1);
+  };
+
   previousTurn.activities.forEach(({ id, data }) => {
     if (!data) return;
 
     switch (id) {
       case ACTIVITIES.establish:
-        if (data.name) corporationActivities.set(data.name, 'FOUNDED');
+        if (data.name) {
+          addActivity(data.name, "FOUNDED");
+        }
         break;
 
       case ACTIVITIES.buyStocks:
         if (Array.isArray(data)) {
-          data.forEach(corpName => corporationActivities.set(corpName, 'BOUGHT'));
+          data.forEach(corpName => {
+            addActivity(corpName, "BOUGHT");
+          });
         }
         break;
 
       case ACTIVITIES.merge:
-        if (data.acquirer) corporationActivities.set(data.acquirer, 'ACQUIRED');
-        if (data.defunct) corporationActivities.set(data.defunct, 'MERGED');
+        if (data.acquirer) {
+          addActivity(data.acquirer, "ACQUIRED");
+        }
+        if (data.defunct) {
+          addActivity(data.defunct, "MERGED");
+        }
         break;
 
       case ACTIVITIES.mergeConflict:
         if (Array.isArray(data)) {
-          data.forEach(corpName => corporationActivities.set(corpName, 'CONFLICT'));
+          data.forEach(corpName => {
+            addActivity(corpName, "CONFLICT");
+          });
         }
         break;
 
       case ACTIVITIES.acquirerSelection:
         if (Array.isArray(data)) {
-          data.forEach(corpName => corporationActivities.set(corpName, 'ACQUIRER?'));
+          data.forEach(corpName => {
+            addActivity(corpName, "ACQUIRER?");
+          });
         }
         break;
 
       case ACTIVITIES.defunctSelection:
         if (Array.isArray(data)) {
-          data.forEach(corpName => corporationActivities.set(corpName, 'DEFUNCT?'));
+          data.forEach(corpName => {
+            addActivity(corpName, "DEFUNCT?");
+          });
         }
         break;
     }
@@ -184,17 +207,35 @@ const highlightPreviousTurnCorporations = (corporationActivities) => {
   previousTurnCorporations.forEach(corpName => {
     const corp = getCorporation(corpName);
     if (corp) {
-      corp.classList.remove('previous-turn-highlight');
-      corp.removeAttribute('data-activity');
+      corp.classList.remove("previous-turn-highlight");
+      corp.removeAttribute("data-activity");
+      // Remove any existing activity badges
+      const existingBadges = corp.querySelectorAll(".activity-badge");
+      existingBadges.forEach(badge => badge.remove());
     }
   });
 
   // Add new highlights
-  corporationActivities.forEach((activity, corpName) => {
+  corporationActivities.forEach((activities, corpName) => {
     const corp = getCorporation(corpName);
     if (corp) {
-      corp.classList.add('previous-turn-highlight');
-      corp.setAttribute('data-activity', activity);
+      corp.classList.add("previous-turn-highlight");
+
+      // Create badges for each unique activity with counts - positioned vertically in top-right corner
+      let badgeIndex = 0;
+      activities.forEach((count, activity) => {
+        const badge = document.createElement("div");
+        badge.className = "activity-badge";
+
+        // Show count if greater than 1
+        const displayText = count > 1 ? `${activity} x${count}` : activity;
+        badge.textContent = displayText;
+        badge.setAttribute("data-activity", activity);
+        badge.style.top = `${2 + (badgeIndex * 18)}px`;
+        badge.style.right = "2px";
+        corp.appendChild(badge);
+        badgeIndex++;
+      });
     }
   });
 
@@ -205,8 +246,10 @@ const highlightPreviousTurnCorporations = (corporationActivities) => {
     corporationActivities.forEach((_, corpName) => {
       const corp = getCorporation(corpName);
       if (corp) {
-        corp.classList.remove('previous-turn-highlight');
-        corp.removeAttribute('data-activity');
+        corp.classList.remove("previous-turn-highlight");
+        corp.removeAttribute("data-activity");
+        const badges = corp.querySelectorAll(".activity-badge");
+        badges.forEach(badge => badge.remove());
       }
     });
     previousTurnCorporations = [];

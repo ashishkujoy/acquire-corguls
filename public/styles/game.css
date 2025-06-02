@@ -3,10 +3,9 @@
   height: 100vh;
   display: grid;
   grid-template-columns: 16em 1fr 16em;
-  grid-template-rows: 3em 1fr 2.65em 10em;
+  grid-template-rows: 1fr 2.65em 10em;
 
   grid-template-areas:
-    "game-header game-header game-header"
     "corporation game-board-container account"
     "corporation players account"
     "corporation activity-bar account";
@@ -32,6 +31,7 @@
   font-size: 2.5em;
   color: var(--light-gray);
   letter-spacing: 2px;
+  height: 0px;
 }
 
 #game-title {
@@ -523,28 +523,48 @@
   animation: badgePulse 2s ease-in-out infinite;
 }
 
+/* Individual activity badges for multiple activities */
+.activity-badge {
+  position: absolute;
+  background: linear-gradient(45deg, #ffd700, #ffa500);
+  color: #000;
+  font-size: 0.5em;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 8px;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  animation: badgePulse 2s ease-in-out infinite;
+  white-space: nowrap;
+}
+
 /* Different colors for different activities */
-.corporation.previous-turn-highlight[data-activity="FOUNDED"]::before {
+.corporation.previous-turn-highlight[data-activity="FOUNDED"]::before,
+.activity-badge[data-activity="FOUNDED"] {
   background: linear-gradient(45deg, #4caf50, #45a049);
   color: white;
 }
 
-.corporation.previous-turn-highlight[data-activity="BOUGHT"]::before {
+.corporation.previous-turn-highlight[data-activity="BOUGHT"]::before,
+.activity-badge[data-activity="BOUGHT"] {
   background: linear-gradient(45deg, #2196f3, #1976d2);
   color: white;
 }
 
-.corporation.previous-turn-highlight[data-activity="ACQUIRED"]::before {
+.corporation.previous-turn-highlight[data-activity="ACQUIRED"]::before,
+.activity-badge[data-activity="ACQUIRED"] {
   background: linear-gradient(45deg, #ff9800, #f57c00);
   color: white;
 }
 
-.corporation.previous-turn-highlight[data-activity="MERGED"]::before {
+.corporation.previous-turn-highlight[data-activity="MERGED"]::before,
+.activity-badge[data-activity="MERGED"] {
   background: linear-gradient(45deg, #f44336, #d32f2f);
   color: white;
 }
 
-.corporation.previous-turn-highlight[data-activity="CONFLICT"]::before {
+.corporation.previous-turn-highlight[data-activity="CONFLICT"]::before,
+.activity-badge[data-activity="CONFLICT"] {
   background: linear-gradient(45deg, #9c27b0, #7b1fa2);
   color: white;
 }
@@ -905,4 +925,3 @@
   padding-bottom: 0.2em;
   border-bottom: 1px solid rgb(0, 0, 0);
 }
- 
