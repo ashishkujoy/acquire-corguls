@@ -2,6 +2,15 @@ const express = require("express");
 const { authorize } = require("../middleware/auth");
 const { authorizeLobbyMember } = require("../middleware/lobby");
 
+const USE_SIMPLE_AUTH = process.env.USE_SIMPLE_AUTH === "true";
+
+const getUserFromRequest = (req) => {
+  if (USE_SIMPLE_AUTH) {
+    return { username: req.cookies.username };
+  }
+  return req.user;
+};
+
 const serveLobbyPage = (_, res) => {
   res.sendFile("lobby.html", { root: "pages" });
 };
@@ -20,8 +29,10 @@ const doNotJoinIfLobbyIsFull = (req, res, next) => {
 
 const joinPlayer = (req, res) => {
   const { lobby } = req.app.context;
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
   const { id } = req.params;
+
   try {
     lobby.addPlayer({ username });
   } catch (error) {
@@ -34,7 +45,8 @@ const joinPlayer = (req, res) => {
 
 const sendLobbyStatus = (req, res) => {
   const { lobby } = req.app.context;
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
 
   res.json(lobby.status(username));
 };
@@ -42,16 +54,17 @@ const sendLobbyStatus = (req, res) => {
 const serveAvailableLobbies = (req, res) => {
   const { lobbyManager } = req.app.context;
   return res.json(lobbyManager.availableLobbies());
-}
+};
 
 const createNewLobby = (req, res) => {
   const { name } = req.body;
   const size = { lowerLimit: 2, upperLimit: 6 };
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
   const id = req.app.context.lobbyManager.createLobbyWithHost(size, name, username);
 
   res.json({ id, name });
-}
+};
 
 const joinLobbyEvenHandler = (context, socket, data) => {
   const { lobbyManager, io } = context;
@@ -59,7 +72,7 @@ const joinLobbyEvenHandler = (context, socket, data) => {
   const lobby = lobbyManager.findById(lobbyId);
   socket.join(lobbyId);
   io.to(lobbyId).emit("lobbyupdate", lobby.status(socket.username));
-}
+};
 
 const setupLobbyWebsocketEvents = (context, socket) => {
   if (!context.io) {
@@ -67,9 +80,9 @@ const setupLobbyWebsocketEvents = (context, socket) => {
   }
   socket.on("joinlobby", (data) => {
     console.log("Got a join lobby request", data);
-    return joinLobbyEvenHandler(context, socket, data)
+    return joinLobbyEvenHandler(context, socket, data);
   });
-}
+};
 
 const extractLobby = (req, res, next) => {
   const { id } = req.params;
@@ -80,16 +93,16 @@ const extractLobby = (req, res, next) => {
   }
   req.app.context.lobby = lobby;
   return next();
-}
+};
 
 const createLobbyRouter = () => {
   const router = new express.Router();
   router.get("/available", authorize, serveAvailableLobbies);
-  router.post("/create", createNewLobby);
+  router.post("/create", authorize, createNewLobby);
 
   router.use(["/:id", "/:id/*"], extractLobby);
   router.get("/:id", authorize, authorizeLobbyMember, serveLobbyPage);
-  router.post("/:id/players", doNotJoinIfLobbyIsFull, joinPlayer);
+  router.post("/:id/players", authorize, doNotJoinIfLobbyIsFull, joinPlayer);
   router.get("/:id/status", authorize, authorizeLobbyMember, sendLobbyStatus);
 
   return router;

@@ -7,18 +7,101 @@
     <title>Acquire - Login</title>
     <link rel="stylesheet" href="/styles/login.css">
     <script>
-        const setupLoginBtn = (btnClass, loginUrl) => {
-            const btn = document.querySelector(`.${btnClass}`)
-            btn.onclick = () => window.location.assign(loginUrl);
-        }
+        const setupOAuthButtons = (config) => {
+            const setupLoginBtn = (btnClass, loginUrl) => {
+                const btn = document.querySelector(`.${btnClass}`);
+                if (btn) {
+                    btn.onclick = () => window.location.assign(loginUrl);
+                }
+            };
 
-        const setupLoginBtns = () => {
-            setupLoginBtn("google-btn", "/login/google");
-            setupLoginBtn("github-btn", "/login/github");
-            // setupLoginBtn("facebook-btn", "/login/facebook");
-        }
+            if (config.hasGoogle) {
+                setupLoginBtn("google-btn", "/login/google");
+            } else {
+                const googleBtn = document.querySelector('.google-btn');
+                if (googleBtn) googleBtn.style.display = 'none';
+            }
 
-        window.onload = setupLoginBtns;
+            if (config.hasGitHub) {
+                setupLoginBtn("github-btn", "/login/github");
+            } else {
+                const githubBtn = document.querySelector('.github-btn');
+                if (githubBtn) githubBtn.style.display = 'none';
+            }
+        };
+
+        const setupSimpleAuth = () => {
+            const form = document.getElementById('simple-login-form');
+            const usernameInput = document.getElementById('username');
+
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+
+                const username = usernameInput.value.trim();
+                if (!username) {
+                    showError('Please enter a username');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username }),
+                    });
+
+                    if (response.ok) {
+                        window.location.href = '/joinorhost';
+                    } else {
+                        const error = await response.json();
+                        showError(error.error || 'Login failed');
+                    }
+                } catch (err) {
+                    showError('Network error. Please try again.');
+                }
+            };
+
+            // Focus on username input
+            usernameInput.focus();
+        };
+
+        const showError = (message) => {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        };
+
+        const checkAuthMethod = async () => {
+            try {
+                const response = await fetch('/auth-config');
+                const config = await response.json();
+
+                const simpleAuthContainer = document.getElementById('simple-auth-container');
+                const oauthContainer = document.getElementById('oauth-container');
+
+                if (config.useSimpleAuth) {
+                    // Show simple username form
+                    simpleAuthContainer.style.display = 'block';
+                    oauthContainer.style.display = 'none';
+                    setupSimpleAuth();
+                } else {
+                    // Show OAuth buttons
+                    simpleAuthContainer.style.display = 'none';
+                    oauthContainer.style.display = 'block';
+                    setupOAuthButtons(config);
+                }
+            } catch (err) {
+                console.error('Failed to get auth config:', err);
+                // Default to simple auth if we can't determine
+                document.getElementById('simple-auth-container').style.display = 'block';
+                document.getElementById('oauth-container').style.display = 'none';
+                setupSimpleAuth();
+            }
+        };
+
+        window.onload = checkAuthMethod;
     </script>
 </head>
 
@@ -30,7 +113,24 @@
     <div class="container">
         <div class="card max-width-400">
             <h2>Welcome Back</h2>
-            <div class="social-logins">
+
+            <!-- Simple Username Authentication -->
+            <div id="simple-auth-container" style="display: none;">
+                <form id="simple-login-form" class="simple-login">
+                    <div class="input-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" placeholder="Enter your username" required
+                            autocomplete="username" />
+                    </div>
+                    <div id="error-message" class="error-message" style="display: none;"></div>
+                    <button type="submit" class="login-btn">
+                        Enter Game
+                    </button>
+                </form>
+            </div>
+
+            <!-- OAuth Authentication -->
+            <div id="oauth-container" class="social-logins" style="display: none;">
                 <button class="social-btn google-btn">
                     <svg class="icon" viewBox="0 0 24 24">
                         <path fill="currentColor"
@@ -45,14 +145,6 @@
                             d="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21C14.5,21.27 14.66,21.59 15.17,21.5C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z" />
                     </svg>
                     Continue with GitHub
-                </button>
-
-                <button class="social-btn facebook-btn" style="display: none;">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path fill="currentColor"
-                            d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96A10 10 0 0 0 22 12.06C22 6.53 17.5 2.04 12 2.04Z" />
-                    </svg>
-                    Continue with Facebook
                 </button>
             </div>
         </div>
