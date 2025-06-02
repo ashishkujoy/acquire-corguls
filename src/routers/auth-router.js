@@ -31,7 +31,7 @@ const serveLoginPage = (_, res) => {
 
 const getAuthConfig = (_, res) => {
   res.json({
-    useSimpleAuth: true,
+    useSimpleAuth: USE_SIMPLE_AUTH,
     hasGoogle: !USE_SIMPLE_AUTH && !!process.env["GOOGLE_CLIENT_ID"],
     hasGitHub: !USE_SIMPLE_AUTH && !!process.env["GITHUB_CLIENT_ID"]
   });
