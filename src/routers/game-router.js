@@ -215,14 +215,14 @@ const extractGame = (req, res, next) => {
 const setupGameEventRoutes = (context, socket) => {
   socket.on("registerGameStatus", ({ gameId }) => {
     const game = context.gameManager.findById(gameId);
-    const { username } = socket;
+    const username = decodeURIComponent(socket.username);
     if (!game) {
       socket.emit("error", { message: `Game Not found: ${gameId}` });
       return;
     }
     const roomId = `${gameId}_${username}`;
     socket.join(roomId);
-    context.io.to(roomId).emit("gameStatus", game.status(socket.username));
+    context.io.to(roomId).emit("gameStatus", game.status(username));
   });
 };
 
