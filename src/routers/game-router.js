@@ -1,9 +1,19 @@
 const express = require("express");
 const { authorizeLobbyMember } = require("../middleware/lobby");
 
+const USE_SIMPLE_AUTH = process.env.USE_SIMPLE_AUTH === "true";
+
+const getUserFromRequest = (req) => {
+  if (USE_SIMPLE_AUTH) {
+    return { username: req.cookies.username };
+  }
+  return req.user;
+};
+
 const serveGameStats = (req, res) => {
   const { game } = req.app.context;
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
   res.send(game.status(username));
 };
 
@@ -17,11 +27,12 @@ const updateClients = (game, io) => {
       const roomId = `${status.id}_${status.username}`;
       io.to(roomId).emit("gameStatus", status);
     });
-}
+};
 
 const placeTile = (req, res) => {
   const { game } = req.app.context;
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
   const tile = req.body;
 
   game.placeTile(username, tile);
@@ -86,7 +97,8 @@ const getLobby = (req) => {
 
 const startGame = (req, res) => {
   const lobby = getLobby(req);
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
   const game = req.app.context.gameManager.createGame(lobby);
   req.app.context.game = game;
   game.start();
@@ -100,7 +112,8 @@ const startGame = (req, res) => {
 };
 
 const verifyHost = (req, res, next) => {
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
   const lobby = getLobby(req);
   const { self, host } = lobby.status(username);
 
@@ -160,7 +173,8 @@ const resolveConflict = (req, res) => {
 
 const validatePlayer = (req, res, next) => {
   const { game } = req.app.context;
-  const { username } = req.user;
+  const user = getUserFromRequest(req);
+  const { username } = user;
   const currentPlayerName = game.currentPlayerName();
   if (username === currentPlayerName) return next();
   res.status(400).end();
@@ -210,7 +224,7 @@ const setupGameEventRoutes = (context, socket) => {
     socket.join(roomId);
     context.io.to(roomId).emit("gameStatus", game.status(socket.username));
   });
-}
+};
 
 const createGameRouter = () => {
   const router = new express.Router();
