@@ -141,7 +141,7 @@
   left: 4.6em;
 }
 
-.highlight-player-tile .tile:not(.unplayable-tile,.used-tile) {
+.highlight-player-tile .tile:not(.unplayable-tile, .used-tile) {
   border: 1px solid white;
   scale: 1.05;
   transition-duration: 1s;
@@ -330,6 +330,36 @@
   user-select: none;
 }
 
+/* Individual tile hover effect */
+.tile.tile-hover {
+  transform: scale(1.1);
+  border: 2px solid #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+}
+
+/* Enhanced board tile highlighting */
+.space.highlight {
+  border: 3px solid var(--dark-gray) !important;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.8),
+    inset 0 0 15px rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+  transition: all 0.2s ease-in-out;
+  z-index: 5;
+}
+
+/* Active tile highlighting (the one being hovered) */
+.space.highlight-active {
+  border: 3px solid #ffd700 !important;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 1),
+    inset 0 0 20px rgba(255, 215, 0, 0.4);
+  transform: scale(1.1);
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+  background-color: rgba(255, 215, 0, 0.2) !important;
+}
+
 #display-panel {
   width: 100%;
   height: 100%;
@@ -469,6 +499,130 @@
   padding: 2px 3px;
 }
 
+/* Previous turn corporation highlighting */
+.corporation.previous-turn-highlight {
+  position: relative;
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+  animation: previousTurnGlow 3s ease-in-out;
+}
+
+.corporation.previous-turn-highlight::before {
+  content: attr(data-activity);
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(45deg, #ffd700, #ffa500);
+  color: #000;
+  font-size: 0.6em;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* Different colors for different activities */
+.corporation.previous-turn-highlight[data-activity="FOUNDED"]::before {
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  color: white;
+}
+
+.corporation.previous-turn-highlight[data-activity="BOUGHT"]::before {
+  background: linear-gradient(45deg, #2196f3, #1976d2);
+  color: white;
+}
+
+.corporation.previous-turn-highlight[data-activity="ACQUIRED"]::before {
+  background: linear-gradient(45deg, #ff9800, #f57c00);
+  color: white;
+}
+
+.corporation.previous-turn-highlight[data-activity="MERGED"]::before {
+  background: linear-gradient(45deg, #f44336, #d32f2f);
+  color: white;
+}
+
+.corporation.previous-turn-highlight[data-activity="CONFLICT"]::before {
+  background: linear-gradient(45deg, #9c27b0, #7b1fa2);
+  color: white;
+}
+
+@keyframes previousTurnGlow {
+  0% {
+    border-color: #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    border-color: #ffa500;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+  }
+  100% {
+    border-color: #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+  }
+}
+
+@keyframes badgePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+/* Stock price change indicators */
+.corporation .details .price.price-up {
+  color: #4caf50;
+  animation: priceUp 2s ease-out;
+}
+
+.corporation .details .price.price-up::after {
+  content: " ↗";
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.corporation .details .price.price-down {
+  color: #f44336;
+  animation: priceDown 2s ease-out;
+}
+
+.corporation .details .price.price-down::after {
+  content: " ↘";
+  color: #f44336;
+  font-weight: bold;
+}
+
+@keyframes priceUp {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes priceDown {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .selected-stocks {
   display: flex;
   justify-content: center;
@@ -527,16 +681,16 @@
   height: fit-content !important;
 }
 
-.stock.flash{
-  scale:1.1;
+.stock.flash {
+  scale: 1.1;
   transition-duration: 1s;
-  transition-timing-function:cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition-timing-function: cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-#balance-container.flash .amount{
+#balance-container.flash .amount {
   scale: 1.3;
   transition-duration: 1s;
-  transition-timing-function:cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition-timing-function: cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 .flash {
@@ -751,3 +905,4 @@
   padding-bottom: 0.2em;
   border-bottom: 1px solid rgb(0, 0, 0);
 }
+ 

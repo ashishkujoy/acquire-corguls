@@ -10,6 +10,9 @@ import { selectAcquirer } from "/scripts/multiple-acquirer.js";
 import { selectDefunct } from "/scripts/multiple-defunct.js";
 
 let previousState;
+let currentTiles = [];
+let previousPrices = {}; // Track previous stock prices
+let previousTurnCorporations = []; // Track corporations from previous turn
 
 const CORPORATIONS = [
   "phoenix",
@@ -128,15 +131,116 @@ const roundToTwoDecimalPlaces = (value) => {
   return Math.round(value * 100) / 100;
 }
 
+const extractCorporationsFromPreviousTurn = (gameStatus) => {
+  const { previousTurn } = gameStatus.turns;
+  if (!previousTurn || !previousTurn.activities) return [];
+
+  const corporationActivities = new Map();
+
+  previousTurn.activities.forEach(({ id, data }) => {
+    if (!data) return;
+
+    switch (id) {
+      case ACTIVITIES.establish:
+        if (data.name) corporationActivities.set(data.name, 'FOUNDED');
+        break;
+
+      case ACTIVITIES.buyStocks:
+        if (Array.isArray(data)) {
+          data.forEach(corpName => corporationActivities.set(corpName, 'BOUGHT'));
+        }
+        break;
+
+      case ACTIVITIES.merge:
+        if (data.acquirer) corporationActivities.set(data.acquirer, 'ACQUIRED');
+        if (data.defunct) corporationActivities.set(data.defunct, 'MERGED');
+        break;
+
+      case ACTIVITIES.mergeConflict:
+        if (Array.isArray(data)) {
+          data.forEach(corpName => corporationActivities.set(corpName, 'CONFLICT'));
+        }
+        break;
+
+      case ACTIVITIES.acquirerSelection:
+        if (Array.isArray(data)) {
+          data.forEach(corpName => corporationActivities.set(corpName, 'ACQUIRER?'));
+        }
+        break;
+
+      case ACTIVITIES.defunctSelection:
+        if (Array.isArray(data)) {
+          data.forEach(corpName => corporationActivities.set(corpName, 'DEFUNCT?'));
+        }
+        break;
+    }
+  });
+
+  return corporationActivities;
+};
+
+const highlightPreviousTurnCorporations = (corporationActivities) => {
+  // Remove previous highlights
+  previousTurnCorporations.forEach(corpName => {
+    const corp = getCorporation(corpName);
+    if (corp) {
+      corp.classList.remove('previous-turn-highlight');
+      corp.removeAttribute('data-activity');
+    }
+  });
+
+  // Add new highlights
+  corporationActivities.forEach((activity, corpName) => {
+    const corp = getCorporation(corpName);
+    if (corp) {
+      corp.classList.add('previous-turn-highlight');
+      corp.setAttribute('data-activity', activity);
+    }
+  });
+
+  previousTurnCorporations = Array.from(corporationActivities.keys());
+
+  // Auto-remove highlights after 8 seconds
+  setTimeout(() => {
+    corporationActivities.forEach((_, corpName) => {
+      const corp = getCorporation(corpName);
+      if (corp) {
+        corp.classList.remove('previous-turn-highlight');
+        corp.removeAttribute('data-activity');
+      }
+    });
+    previousTurnCorporations = [];
+  }, 8000);
+};
+
 const renderCorporations = ({ corporations }) => {
   Object.entries(corporations).forEach(([name, stats]) => {
     const corporation = getCorporation(name);
 
     if (stats.isSafe) corporation.classList.add("safe");
 
-    corporation.querySelector(".price").innerText = `$${roundToTwoDecimalPlaces(stats.price)}`;
+    const priceElement = corporation.querySelector(".price");
+    const currentPrice = roundToTwoDecimalPlaces(stats.price);
+    const previousPrice = previousPrices[name];
+
+    // Add price change indicator
+    if (previousPrice !== undefined && previousPrice !== currentPrice) {
+      const changeClass = currentPrice > previousPrice ? 'price-up' : 'price-down';
+      priceElement.classList.remove('price-up', 'price-down');
+      priceElement.classList.add(changeClass);
+
+      // Remove the class after animation
+      setTimeout(() => {
+        priceElement.classList.remove(changeClass);
+      }, 2000);
+    }
+
+    priceElement.innerText = `$${currentPrice}`;
     corporation.querySelector(".size").innerText = stats.size;
     corporation.querySelector(".stocks").innerText = stats.stocks;
+
+    // Store current price for next comparison
+    previousPrices[name] = currentPrice;
   });
 };
 
@@ -206,21 +310,67 @@ const removeHighlight = tile => {
   onBoardTile.classList.remove("highlight");
 };
 
+const highlightAllTiles = (hoveredTile) => {
+  currentTiles.forEach(tile => {
+    if (!tile) return;
+    const onBoardTile = getBoardTile(tile.position);
+    if (tile === hoveredTile) {
+      onBoardTile.classList.add("highlight-active");
+    } else {
+      onBoardTile.classList.add("highlight");
+    }
+  });
+};
+
+const removeAllHighlights = () => {
+  currentTiles.forEach(tile => {
+    if (!tile) return;
+    const onBoardTile = getBoardTile(tile.position);
+    onBoardTile.classList.remove("highlight", "highlight-active");
+  });
+};
+
 const setUpHoverEventForTiles = tiles => {
   const tileContainer = getTileContainer();
 
-  tileContainer.onmouseover = () => {
-    tiles.forEach(highlightTile);
-  };
+  // Store current tiles globally so hover always works
+  currentTiles = tiles.filter(tile => tile);
 
-  tileContainer.onmouseleave = () => {
-    tiles.forEach(removeHighlight);
-  };
+  // Remove any existing event listeners to avoid duplicates
+  tileContainer.onmouseover = null;
+  tileContainer.onmouseleave = null;
+
+  // Remove old individual tile listeners
+  const tileElements = getTileElements();
+  tileElements.forEach(tileElement => {
+    tileElement.onmouseenter = null;
+    tileElement.onmouseleave = null;
+  });
+
+  // Set up individual tile hover events - use original tiles array to maintain correct indices
+  tiles.forEach((tile, index) => {
+    const tileElement = tileElements[index];
+    if (!tileElement || !tile) return;
+
+    // Force pointer events on individual tiles to override disable-click
+    tileElement.style.pointerEvents = "auto";
+
+    tileElement.onmouseenter = () => {
+      highlightAllTiles(tile);
+      tileElement.classList.add("tile-hover");
+    };
+
+    tileElement.onmouseleave = () => {
+      removeAllHighlights();
+      tileElement.classList.remove("tile-hover");
+    };
+  });
 };
 
 const displayAndSetupAccountTiles = gameStatus => {
   const { tiles } = gameStatus.portfolio;
   const tileElements = getTileElements();
+
   setUpHoverEventForTiles(tiles.filter(tile => tile));
 
   tiles.forEach((tile, tileID) => {
@@ -346,8 +496,13 @@ const renderOnStatusUpdate = (gameStatus) => {
   displayPlayerProfile(gameStatus, previousState);
   renderBoard(gameStatus);
   renderCorporations(gameStatus);
+
+  // Highlight corporations from previous turn
+  const previousTurnCorps = extractCorporationsFromPreviousTurn(gameStatus);
+  highlightPreviousTurnCorporations(previousTurnCorps);
+
   previousState = gameStatus.state;
-}
+};
 
 const flash = (element, time = 500) => {
   element.classList.add("flash");
@@ -606,6 +761,10 @@ const setupGame = () => {
     // displayInitialMessages(gameStatus);
     renderCorporations(gameStatus);
     setupCorporationSelection(gameStatus);
+
+    // Highlight corporations from previous turn on initial load
+    const previousTurnCorps = extractCorporationsFromPreviousTurn(gameStatus);
+    highlightPreviousTurnCorporations(previousTurnCorps);
 
     const components = createComponents(gameStatus);
     const gameService = new GameService(components);
